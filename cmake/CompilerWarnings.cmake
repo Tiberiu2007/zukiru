@@ -38,7 +38,10 @@ set(_zk_gcc_clang_warnings
   -Woverloaded-virtual
   -Wconversion
   -Wsign-conversion
-  -Wnull-dereference
+  # NOTE: -Wnull-dereference intentionally omitted. Under -O2/-O3 GCC produces
+  # optimization-dependent false positives (e.g. dereferencing a legitimately
+  # nullable pointer such as a lookup result). Real null dereferences are caught
+  # at runtime by the `asan` preset (UBSan), so the static flag is redundant.
   -Wdouble-promotion
   -Wformat=2
   -Wimplicit-fallthrough

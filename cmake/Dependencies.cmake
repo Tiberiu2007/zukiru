@@ -51,6 +51,17 @@ function(zukiru_require_catch2)
     endif()
   endif()
 
+  # Treat Catch2's headers as SYSTEM so our strict -Werror policy never fires on
+  # third-party code (e.g. GCC's -Wnull-dereference false positives inside its
+  # own std::string comparison helpers). Requires CMake 3.25+ for the property.
+  if(NOT CMAKE_VERSION VERSION_LESS 3.25)
+    foreach(_catchTarget Catch2 Catch2WithMain)
+      if(TARGET ${_catchTarget})
+        set_target_properties(${_catchTarget} PROPERTIES SYSTEM TRUE)
+      endif()
+    endforeach()
+  endif()
+
   # Remember the extras dir (holds Catch.cmake) the first time we can see it,
   # then hand it to the caller on this and every later call.
   if(DEFINED catch2_SOURCE_DIR AND EXISTS "${catch2_SOURCE_DIR}/extras")
