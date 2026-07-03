@@ -1,0 +1,8 @@
+# clangd configuration. The CMake build writes compile_commands.json into the
+# preset's binary dir (build/<preset>/), which clangd doesn't auto-discover.
+# Point it at the debug preset's database.
+#
+# If you work primarily out of a different preset, change this to build/release
+# (etc.), or override per-machine via a user-level clangd config.
+CompileFlags:
+  CompilationDatabase: build/debug
