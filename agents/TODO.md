@@ -27,7 +27,7 @@ Working task list for AI agents and humans. **Read this before starting work; up
 ## Milestone 1 — Foundation (Layer 0)
 - [x] `core` — types, assertions, `Result<T>`, string utils, time, config — **done 2026-07-03** (agent: claude-opus-4-8). Root `zukiru` namespace (ADR 0002). Headers: types/assert/result/string_utils/time/config (+ umbrella). 37 unit tests, green in `debug` + `release` (warnings-as-errors). README + dep-table entry present.
 - [x] `math` — vec/mat/quat, transforms, geometry, SIMD helpers — **done 2026-07-03** (agent: claude-opus-4-8). Header-only, `zukiru::math` namespace, depends on `core`. RH / column-major / column-vector / clip-depth [0,1] conventions (documented in README). Headers: scalar/vec/mat/quat/transform/geometry (+ umbrella). 39 unit tests, green in `debug` + `release`. SIMD deferred (types are aligned & SIMD-ready). README + dep-table entry present.
-- [ ] `log` — structured logging, sinks, channels
+- [x] `log` — structured logging, sinks, channels — **done 2026-07-03** (agent: claude-opus-4-8). `zukiru::log` namespace, depends on `core`. LogLevel (Trace..Critical/Off) + per-channel thresholds; `Logger` (thread-safe, pluggable sinks) + `defaultLogger()`; Console/File/Callback sinks; `ZUKIRU_LOG_*` macros with lazy `std::format` + compile-time floor (`kCompiledMinLevel`: Trace in debug, Info in release). 13 unit tests, green in `debug` + `release`. README + dep-table entry present.
 - [ ] `memory` — arena/pool/stack allocators, handles, tracking
 - [ ] `containers` — sparse set, slot map, ring buffer
 - [ ] `platform` — windowing, threads, dynamic libs, clock, file I/O primitives
