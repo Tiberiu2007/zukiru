@@ -31,24 +31,35 @@ include(FetchContent)
 
 # Catch2 v3 — the unit-test framework (see ADR 0001). Prefer a system/vcpkg
 # package if one is already discoverable; otherwise fetch a pinned tag.
+#
+# Callable repeatedly and from any scope: it acquires Catch2 exactly once, then
+# on every call re-applies the path to Catch2's CTest helpers (catch_discover_tests)
+# to the *caller's* CMAKE_MODULE_PATH so a following `include(Catch)` works.
 function(zukiru_require_catch2)
-  if(TARGET Catch2::Catch2WithMain)
-    return()
-  endif()
-  find_package(Catch2 3 QUIET)
-  if(Catch2_FOUND)
-    message(STATUS "Zukiru: using system/vcpkg Catch2 ${Catch2_VERSION}")
-    return()
+  if(NOT TARGET Catch2::Catch2WithMain)
+    find_package(Catch2 3 QUIET)
+    if(Catch2_FOUND)
+      message(STATUS "Zukiru: using system/vcpkg Catch2 ${Catch2_VERSION}")
+    else()
+      message(STATUS "Zukiru: fetching Catch2 v3.7.1 via FetchContent")
+      FetchContent_Declare(Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v3.7.1
+        GIT_SHALLOW    TRUE
+      )
+      FetchContent_MakeAvailable(Catch2)
+    endif()
   endif()
 
-  message(STATUS "Zukiru: fetching Catch2 v3.7.1 via FetchContent")
-  FetchContent_Declare(Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.7.1
-    GIT_SHALLOW    TRUE
-  )
-  FetchContent_MakeAvailable(Catch2)
-  # Make Catch2's CTest integration helpers (catch_discover_tests) available.
-  list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
-  set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+  # Remember the extras dir (holds Catch.cmake) the first time we can see it,
+  # then hand it to the caller on this and every later call.
+  if(DEFINED catch2_SOURCE_DIR AND EXISTS "${catch2_SOURCE_DIR}/extras")
+    set_property(GLOBAL PROPERTY ZUKIRU_CATCH_EXTRAS "${catch2_SOURCE_DIR}/extras")
+  endif()
+  get_property(_extras GLOBAL PROPERTY ZUKIRU_CATCH_EXTRAS)
+  if(_extras)
+    list(APPEND CMAKE_MODULE_PATH "${_extras}")
+    list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
+    set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+  endif()
 endfunction()

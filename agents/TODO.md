@@ -25,7 +25,7 @@ Working task list for AI agents and humans. **Read this before starting work; up
 - [x] `README.md` at repo root (what Zukiru is, requirements, build/preset instructions, options table, how to add a module) (2026-07-03)
 
 ## Milestone 1 — Foundation (Layer 0)
-- [ ] `core` — types, assertions, `Result<T>`, string utils, time, config
+- [x] `core` — types, assertions, `Result<T>`, string utils, time, config — **done 2026-07-03** (agent: claude-opus-4-8). Root `zuki` namespace (ADR 0002). Headers: types/assert/result/string_utils/time/config (+ umbrella). 37 unit tests, green in `debug` + `release` (warnings-as-errors). README + dep-table entry present.
 - [ ] `math` — vec/mat/quat, transforms, geometry, SIMD helpers
 - [ ] `log` — structured logging, sinks, channels
 - [ ] `memory` — arena/pool/stack allocators, handles, tracking
