@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace zuki::strings {
+namespace zukiru::strings {
 
 // --- Trimming (return views into the input; no allocation) ---------------
 [[nodiscard]] std::string_view trimLeft(std::string_view s) noexcept;
@@ -42,4 +42,4 @@ namespace zuki::strings {
 [[nodiscard]] std::string replaceAll(std::string_view s, std::string_view from,
                                      std::string_view to);
 
-}  // namespace zuki::strings
+}  // namespace zukiru::strings

@@ -1,12 +1,12 @@
 // Assertions, panics and the customizable failure handler.
 //
-//   ZUKI_ASSERT(cond)            debug-only, compiled out in release
-//   ZUKI_ASSERT_MSG(cond, msg)   "
-//   ZUKI_ASSERTF(cond, fmt, ...) " with std::format message
-//   ZUKI_ENSURE(cond[, msg])     ALWAYS active (even in release)
-//   ZUKI_PANIC(msg)              unconditional failure
-//   ZUKI_PANICF(fmt, ...)        "                    with std::format message
-//   ZUKI_UNREACHABLE()           marks an impossible path
+//   ZUKIRU_ASSERT(cond)            debug-only, compiled out in release
+//   ZUKIRU_ASSERT_MSG(cond, msg)   "
+//   ZUKIRU_ASSERTF(cond, fmt, ...) " with std::format message
+//   ZUKIRU_ENSURE(cond[, msg])     ALWAYS active (even in release)
+//   ZUKIRU_PANIC(msg)              unconditional failure
+//   ZUKIRU_PANICF(fmt, ...)        "                    with std::format message
+//   ZUKIRU_UNREACHABLE()           marks an impossible path
 //
 // On failure the active AssertHandler is invoked; the default prints to stderr
 // and aborts. Tests can install a handler that throws to observe failures
@@ -19,7 +19,7 @@
 #include <string_view>
 #include <utility>
 
-namespace zuki {
+namespace zukiru {
 
 // Where an assertion fired. Cheap to pass by value.
 struct SourceLocation {
@@ -46,58 +46,58 @@ namespace detail {
 
 }  // namespace detail
 
-}  // namespace zuki
+}  // namespace zukiru
 
 // --- Portable helpers -----------------------------------------------------
 #if defined(_MSC_VER)
-#define ZUKI_FUNCTION __FUNCSIG__
+#define ZUKIRU_FUNCTION __FUNCSIG__
 #else
-#define ZUKI_FUNCTION __PRETTY_FUNCTION__
+#define ZUKIRU_FUNCTION __PRETTY_FUNCTION__
 #endif
 
-#define ZUKI_SOURCE_LOCATION \
-    ::zuki::SourceLocation { __FILE__, ZUKI_FUNCTION, __LINE__ }
+#define ZUKIRU_SOURCE_LOCATION \
+    ::zukiru::SourceLocation { __FILE__, ZUKIRU_FUNCTION, __LINE__ }
 
 // Always-active check (validation of external input, invariants that matter in
 // shipping builds). Never compiled out.
-#define ZUKI_ENSURE(cond)                                                          \
+#define ZUKIRU_ENSURE(cond)                                                          \
     do {                                                                           \
         if (!(cond)) [[unlikely]] {                                                \
-            ::zuki::detail::assertFail(ZUKI_SOURCE_LOCATION, #cond, {});           \
+            ::zukiru::detail::assertFail(ZUKIRU_SOURCE_LOCATION, #cond, {});           \
         }                                                                          \
     } while (false)
 
-#define ZUKI_ENSURE_MSG(cond, msg)                                                 \
+#define ZUKIRU_ENSURE_MSG(cond, msg)                                                 \
     do {                                                                           \
         if (!(cond)) [[unlikely]] {                                                \
-            ::zuki::detail::assertFail(ZUKI_SOURCE_LOCATION, #cond, (msg));        \
+            ::zukiru::detail::assertFail(ZUKIRU_SOURCE_LOCATION, #cond, (msg));        \
         }                                                                          \
     } while (false)
 
-#define ZUKI_PANIC(msg) ::zuki::detail::assertFail(ZUKI_SOURCE_LOCATION, {}, (msg))
+#define ZUKIRU_PANIC(msg) ::zukiru::detail::assertFail(ZUKIRU_SOURCE_LOCATION, {}, (msg))
 
-#define ZUKI_PANICF(...) \
-    ::zuki::detail::assertFail(ZUKI_SOURCE_LOCATION, {}, ::std::format(__VA_ARGS__))
+#define ZUKIRU_PANICF(...) \
+    ::zukiru::detail::assertFail(ZUKIRU_SOURCE_LOCATION, {}, ::std::format(__VA_ARGS__))
 
-#if defined(ZUKI_DEBUG) && ZUKI_DEBUG
-#define ZUKI_ASSERT(cond) ZUKI_ENSURE(cond)
-#define ZUKI_ASSERT_MSG(cond, msg) ZUKI_ENSURE_MSG(cond, msg)
-#define ZUKI_ASSERTF(cond, ...)                                                    \
+#if defined(ZUKIRU_DEBUG) && ZUKIRU_DEBUG
+#define ZUKIRU_ASSERT(cond) ZUKIRU_ENSURE(cond)
+#define ZUKIRU_ASSERT_MSG(cond, msg) ZUKIRU_ENSURE_MSG(cond, msg)
+#define ZUKIRU_ASSERTF(cond, ...)                                                    \
     do {                                                                           \
         if (!(cond)) [[unlikely]] {                                                \
-            ::zuki::detail::assertFail(ZUKI_SOURCE_LOCATION, #cond,                \
+            ::zukiru::detail::assertFail(ZUKIRU_SOURCE_LOCATION, #cond,                \
                                        ::std::format(__VA_ARGS__));                \
         }                                                                          \
     } while (false)
-#define ZUKI_UNREACHABLE() ZUKI_PANIC("reached code marked unreachable")
+#define ZUKIRU_UNREACHABLE() ZUKIRU_PANIC("reached code marked unreachable")
 #else
 // Compiled out in release, but still parse `cond` so it can't rot.
-#define ZUKI_ASSERT(cond) ((void)sizeof(cond))
-#define ZUKI_ASSERT_MSG(cond, msg) ((void)sizeof(cond))
-#define ZUKI_ASSERTF(cond, ...) ((void)sizeof(cond))
+#define ZUKIRU_ASSERT(cond) ((void)sizeof(cond))
+#define ZUKIRU_ASSERT_MSG(cond, msg) ((void)sizeof(cond))
+#define ZUKIRU_ASSERTF(cond, ...) ((void)sizeof(cond))
 #if defined(_MSC_VER)
-#define ZUKI_UNREACHABLE() __assume(false)
+#define ZUKIRU_UNREACHABLE() __assume(false)
 #else
-#define ZUKI_UNREACHABLE() __builtin_unreachable()
+#define ZUKIRU_UNREACHABLE() __builtin_unreachable()
 #endif
 #endif

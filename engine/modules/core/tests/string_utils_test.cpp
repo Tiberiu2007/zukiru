@@ -2,8 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zuki;
-namespace s = zuki::strings;
+using namespace zukiru;
+namespace s = zukiru::strings;
 
 TEST_CASE("trim removes surrounding whitespace", "[core][strings]") {
     REQUIRE(s::trim("  hi \t\n") == "hi");
@@ -21,8 +21,8 @@ TEST_CASE("case conversion is ASCII", "[core][strings]") {
 TEST_CASE("predicates", "[core][strings]") {
     REQUIRE(s::contains("abcdef", "cde"));
     REQUIRE_FALSE(s::contains("abcdef", "xyz"));
-    REQUIRE(s::equalsIgnoreCase("Zukiru", "zUKIRU"));
-    REQUIRE_FALSE(s::equalsIgnoreCase("Zukiru", "zukir"));
+    REQUIRE(s::equalsIgnoreCase("Engine", "ENGINE"));
+    REQUIRE_FALSE(s::equalsIgnoreCase("Engine", "engin"));
 }
 
 TEST_CASE("split on a char", "[core][strings]") {

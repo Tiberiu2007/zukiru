@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 // =========================================================================
 // Vec2
@@ -208,4 +208,4 @@ struct alignas(16) Vec4 {
     return a + (b - a) * t;
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math

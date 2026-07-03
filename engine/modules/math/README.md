@@ -3,7 +3,7 @@
 **Layer 0 — foundation.** Header-only linear algebra and geometry. Depends only
 on [`core`](../core) (for the fixed-width scalar aliases).
 
-Namespace: `zuki::math` (nested, per the standard convention — `core` is the only
+Namespace: `zukiru::math` (nested, per the standard convention — `core` is the only
 root-namespace exception).
 
 ## Conventions
@@ -37,7 +37,7 @@ These are engine-wide and worth committing to memory:
 
 ```cpp
 #include <zukiru/math/math.hpp>
-using namespace zuki::math;
+using namespace zukiru::math;
 
 Mat4 view = lookAt({0, 2, 5}, {0, 0, 0}, Vec3::unitY());
 Mat4 proj = perspective(radians(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);

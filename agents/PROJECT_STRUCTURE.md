@@ -181,7 +181,7 @@ add_zukiru_module(render
 
 ## 5. Conventions cheat-sheet
 
-- **Namespace:** everything under `zuki::` (e.g. `zuki::render`, `zuki::ecs`). Module = nested namespace. **Exception:** the `core` module populates the root `zuki` namespace directly (it is the shared vocabulary — `zuki::i32`, `zuki::Result`, …); see `docs/adr/0002-core-root-namespace.md`.
+- **Namespace:** everything under `zukiru::` (e.g. `zukiru::render`, `zukiru::ecs`). Module = nested namespace. **Exception:** the `core` module populates the root `zukiru` namespace directly (it is the shared vocabulary — `zukiru::i32`, `zukiru::Result`, …); see `docs/adr/0002-core-root-namespace.md`.
 - **Files:** `snake_case.hpp` / `snake_case.cpp`. Types `PascalCase`, functions/vars `camelCase` or `snake_case` — pick one in `.clang-format` and never argue about it again.
 - **Public API** goes in `include/zukiru/<module>/`; anything in `src/` is private.
 - **A new module is not "done"** until it has: a `CMakeLists.txt` using the helper, a `README.md`, at least one test, and an entry in the dependency table above.

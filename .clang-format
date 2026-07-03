@@ -1,5 +1,5 @@
 # Zukiru code style. See agents/PROJECT_STRUCTURE.md §5.
-# Types PascalCase, functions/vars camelCase, files snake_case, namespace zuki::.
+# Types PascalCase, functions/vars camelCase, files snake_case, namespace zukiru::.
 ---
 Language:        Cpp
 BasedOnStyle:    Google

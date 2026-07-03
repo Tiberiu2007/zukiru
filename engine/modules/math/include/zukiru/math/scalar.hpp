@@ -5,7 +5,7 @@
 
 #include <cmath>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 // --- Constants -----------------------------------------------------------
 inline constexpr f32 kPi = 3.14159265358979323846f;
@@ -57,4 +57,4 @@ template <class T>
     return std::fabs(v) <= epsilon;
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math

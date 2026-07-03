@@ -18,15 +18,15 @@ Working task list for AI agents and humans. **Read this before starting work; up
 - [x] `CMakePresets.json`: `debug`, `release`, `asan`, `tsan` (asan/tsan gated off Windows); matching build + test presets. All four validated via `--list-presets`. (2026-07-03)
 - [x] `cmake/ZukiruModule.cmake`: `add_zukiru_module()` (auto-glob src/, PUBLIC/PRIVATE deps, BACKENDS selection, header-only support, namespaced alias, install, auto test wiring via Catch2/CTest) (2026-07-03)
 - [x] `cmake/CompilerWarnings.cmake` (`zukiru::warnings`), `cmake/Platform.cmake` (OS/arch + `zukiru::platform_flags`), `cmake/Dependencies.cmake` (vcpkg bootstrap + Catch2 acquisition) (2026-07-03)
-- [x] `.clang-format` (Google-based, 4-space, col 100) + `.clang-tidy` (locks naming: types `PascalCase`, funcs/vars `camelCase`, private members `_` suffix, constants `k`-prefix, macros `ZUKI_` UPPER, namespace `zuki::`) (2026-07-03)
+- [x] `.clang-format` (Google-based, 4-space, col 100) + `.clang-tidy` (locks naming: types `PascalCase`, funcs/vars `camelCase`, private members `_` suffix, constants `k`-prefix, macros `ZUKIRU_` UPPER, namespace `zukiru::`) (2026-07-03)
 - [x] Fill `.gitignore` (build dirs, CMake/vcpkg scratch, cooked assets, IDE files) (2026-07-03)
 - [x] Test framework wired in (**Catch2 v3.7.1**) + trivial passing test — `tests/smoke_test.cpp` (2 cases). Built with `debug` preset, **2/2 passed** via CTest. (2026-07-03)
 - [x] CI workflow in `.github/workflows/ci.yml` — configure/build/test matrix on Ubuntu (gcc debug, gcc release, asan) (2026-07-03)
 - [x] `README.md` at repo root (what Zukiru is, requirements, build/preset instructions, options table, how to add a module) (2026-07-03)
 
 ## Milestone 1 — Foundation (Layer 0)
-- [x] `core` — types, assertions, `Result<T>`, string utils, time, config — **done 2026-07-03** (agent: claude-opus-4-8). Root `zuki` namespace (ADR 0002). Headers: types/assert/result/string_utils/time/config (+ umbrella). 37 unit tests, green in `debug` + `release` (warnings-as-errors). README + dep-table entry present.
-- [x] `math` — vec/mat/quat, transforms, geometry, SIMD helpers — **done 2026-07-03** (agent: claude-opus-4-8). Header-only, `zuki::math` namespace, depends on `core`. RH / column-major / column-vector / clip-depth [0,1] conventions (documented in README). Headers: scalar/vec/mat/quat/transform/geometry (+ umbrella). 39 unit tests, green in `debug` + `release`. SIMD deferred (types are aligned & SIMD-ready). README + dep-table entry present.
+- [x] `core` — types, assertions, `Result<T>`, string utils, time, config — **done 2026-07-03** (agent: claude-opus-4-8). Root `zukiru` namespace (ADR 0002). Headers: types/assert/result/string_utils/time/config (+ umbrella). 37 unit tests, green in `debug` + `release` (warnings-as-errors). README + dep-table entry present.
+- [x] `math` — vec/mat/quat, transforms, geometry, SIMD helpers — **done 2026-07-03** (agent: claude-opus-4-8). Header-only, `zukiru::math` namespace, depends on `core`. RH / column-major / column-vector / clip-depth [0,1] conventions (documented in README). Headers: scalar/vec/mat/quat/transform/geometry (+ umbrella). 39 unit tests, green in `debug` + `release`. SIMD deferred (types are aligned & SIMD-ready). README + dep-table entry present.
 - [ ] `log` — structured logging, sinks, channels
 - [ ] `memory` — arena/pool/stack allocators, handles, tracking
 - [ ] `containers` — sparse set, slot map, ring buffer
@@ -74,4 +74,4 @@ Working task list for AI agents and humans. **Read this before starting work; up
 - [x] Package manager: **vcpkg** (manifest mode) — see `docs/adr/0001-package-manager.md` (2026-07-03)
 - [ ] Scripting language: Lua vs AngelScript vs native-only
 - [ ] Physics backend: Jolt vs Bullet vs custom
-- [x] Namespace **confirmed `zuki::`** and locked in `.clang-tidy` (types `PascalCase`, funcs/vars `camelCase`, files `snake_case`; target/alias + include path use `zukiru::`/`zukiru/`) (2026-07-03)
+- [x] Namespace **confirmed `zukiru::`** and locked in `.clang-tidy` (types `PascalCase`, funcs/vars `camelCase`, files `snake_case`; target/alias + include path use `zukiru::`/`zukiru/`) (2026-07-03)

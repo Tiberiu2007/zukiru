@@ -76,7 +76,7 @@ it has a CMake target (via the helper), a README, at least one test, and an
 entry in the dependency table in
 [`agents/PROJECT_STRUCTURE.md`](agents/PROJECT_STRUCTURE.md). Code style is
 enforced by `.clang-format` / `.clang-tidy`: types `PascalCase`, functions/vars
-`camelCase`, files `snake_case`, namespace `zuki::`.
+`camelCase`, files `snake_case`, namespace `zukiru::`.
 
 ## License
 

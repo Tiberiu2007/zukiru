@@ -10,7 +10,7 @@
 #include <limits>
 #include <optional>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 // Axis-aligned bounding box.
 struct Aabb {
@@ -121,4 +121,4 @@ struct Sphere {
     return tMin;
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math

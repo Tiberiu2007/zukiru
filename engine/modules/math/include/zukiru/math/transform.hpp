@@ -13,7 +13,7 @@
 
 #include <cmath>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 // Position / rotation / scale bundle. `toMatrix()` composes T * R * S.
 struct Transform {
@@ -60,4 +60,4 @@ struct Transform {
          -nearPlane / (farPlane - nearPlane), 1.0f});
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math

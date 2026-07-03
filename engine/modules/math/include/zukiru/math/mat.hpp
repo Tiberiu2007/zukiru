@@ -6,7 +6,7 @@
 #include <zukiru/core/types.hpp>
 #include <zukiru/math/vec.hpp>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 // =========================================================================
 // Mat3 — rotation / scale / normal matrices.
@@ -215,4 +215,4 @@ struct alignas(16) Mat4 {
     return true;
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math

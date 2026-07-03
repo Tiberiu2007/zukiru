@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace zuki {
+namespace zukiru {
 namespace {
 
 // Default handler: report to stderr and abort.
@@ -41,4 +41,4 @@ void assertFail(const SourceLocation& where, std::string_view expr, std::string_
 }
 
 }  // namespace detail
-}  // namespace zuki
+}  // namespace zukiru

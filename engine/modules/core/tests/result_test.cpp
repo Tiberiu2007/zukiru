@@ -4,7 +4,7 @@
 
 #include <string>
 
-using namespace zuki;
+using namespace zukiru;
 
 namespace {
 

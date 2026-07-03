@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace zuki {
+namespace zukiru {
 
 class Config {
 public:
@@ -59,4 +59,4 @@ private:
     std::map<std::string, std::string, std::less<>> entries_;
 };
 
-}  // namespace zuki
+}  // namespace zukiru

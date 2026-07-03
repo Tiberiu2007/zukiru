@@ -29,7 +29,7 @@ Full map in [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md). Quick version:
 - Render backend priority (Vulkan assumed first; `ZUKIRU_RENDER_BACKEND` defaults to `vulkan`).
 - Scripting language (Lua / AngelScript / native-only).
 - Physics backend (Jolt / Bullet / custom).
-- ~~Package manager~~ → vcpkg (ADR 0001). ~~Namespace~~ → `zuki::` confirmed & locked.
+- ~~Package manager~~ → vcpkg (ADR 0001). ~~Namespace~~ → `zukiru::` confirmed & locked.
 
 ## For agents
 - Keep `PROJECT_STRUCTURE.md` in sync with reality whenever the module layout changes.

@@ -1,4 +1,4 @@
-// Core vocabulary types for Zukiru. These live in the root `zuki` namespace on
+// Core vocabulary types for Zukiru. These live in the root `zukiru` namespace on
 // purpose (see docs/adr/0002-core-root-namespace.md) because they appear in the
 // signatures of nearly every other module.
 #pragma once
@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace zuki {
+namespace zukiru {
 
 // --- Fixed-width integer aliases -----------------------------------------
 using i8 = std::int8_t;
@@ -64,4 +64,4 @@ consteval u64 operator""_u64(unsigned long long v) {
 
 }  // namespace literals
 
-}  // namespace zuki
+}  // namespace zukiru

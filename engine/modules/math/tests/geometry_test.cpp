@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zuki::math;
+using namespace zukiru::math;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Aabb containment, size and overlap", "[math][geometry]") {

@@ -41,16 +41,16 @@ endif()
 message(STATUS "Zukiru: target ${ZUKIRU_OS_NAME}/${ZUKIRU_ARCH}")
 
 # --- Feature-flag INTERFACE target ---------------------------------------
-# Modules link this transitively (via the helper) to pick up ZUKI_OS_* defines.
+# Modules link this transitively (via the helper) to pick up ZUKIRU_OS_* defines.
 if(NOT TARGET zukiru_platform_flags)
   add_library(zukiru_platform_flags INTERFACE)
   add_library(zukiru::platform_flags ALIAS zukiru_platform_flags)
 
   target_compile_definitions(zukiru_platform_flags INTERFACE
-    $<$<BOOL:${ZUKIRU_OS_WINDOWS}>:ZUKI_OS_WINDOWS=1>
-    $<$<BOOL:${ZUKIRU_OS_LINUX}>:ZUKI_OS_LINUX=1>
-    $<$<BOOL:${ZUKIRU_OS_MACOS}>:ZUKI_OS_MACOS=1>
-    $<$<CONFIG:Debug>:ZUKI_DEBUG=1>
+    $<$<BOOL:${ZUKIRU_OS_WINDOWS}>:ZUKIRU_OS_WINDOWS=1>
+    $<$<BOOL:${ZUKIRU_OS_LINUX}>:ZUKIRU_OS_LINUX=1>
+    $<$<BOOL:${ZUKIRU_OS_MACOS}>:ZUKIRU_OS_MACOS=1>
+    $<$<CONFIG:Debug>:ZUKIRU_DEBUG=1>
   )
 
   # Sane per-OS baseline defines.

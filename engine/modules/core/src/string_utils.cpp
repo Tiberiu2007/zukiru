@@ -2,7 +2,7 @@
 
 #include <cctype>
 
-namespace zuki::strings {
+namespace zukiru::strings {
 namespace {
 
 constexpr std::string_view kWhitespace = " \t\n\r\f\v";
@@ -125,4 +125,4 @@ std::string replaceAll(std::string_view s, std::string_view from, std::string_vi
     return out;
 }
 
-}  // namespace zuki::strings
+}  // namespace zukiru::strings

@@ -4,7 +4,7 @@
 
 #include <string>
 
-using namespace zuki;
+using namespace zukiru;
 
 namespace {
 
@@ -28,21 +28,21 @@ struct HandlerGuard {
 
 }  // namespace
 
-TEST_CASE("ZUKI_ENSURE passes silently when the condition holds", "[core][assert]") {
+TEST_CASE("ZUKIRU_ENSURE passes silently when the condition holds", "[core][assert]") {
     HandlerGuard guard;
     // The assert macros are statements, so wrap them in a lambda to pass to Catch.
-    REQUIRE_NOTHROW([] { ZUKI_ENSURE(1 + 1 == 2); }());
+    REQUIRE_NOTHROW([] { ZUKIRU_ENSURE(1 + 1 == 2); }());
 }
 
-TEST_CASE("ZUKI_ENSURE fires the handler when the condition fails", "[core][assert]") {
+TEST_CASE("ZUKIRU_ENSURE fires the handler when the condition fails", "[core][assert]") {
     HandlerGuard guard;
-    REQUIRE_THROWS_AS([] { ZUKI_ENSURE(1 == 2); }(), AssertFired);
+    REQUIRE_THROWS_AS([] { ZUKIRU_ENSURE(1 == 2); }(), AssertFired);
 }
 
-TEST_CASE("ZUKI_ENSURE_MSG forwards the message", "[core][assert]") {
+TEST_CASE("ZUKIRU_ENSURE_MSG forwards the message", "[core][assert]") {
     HandlerGuard guard;
     try {
-        ZUKI_ENSURE_MSG(false, "boom");
+        ZUKIRU_ENSURE_MSG(false, "boom");
         FAIL("expected the assertion to fire");
     } catch (const AssertFired& e) {
         REQUIRE(e.message == "boom");
@@ -50,10 +50,10 @@ TEST_CASE("ZUKI_ENSURE_MSG forwards the message", "[core][assert]") {
     }
 }
 
-TEST_CASE("ZUKI_PANICF formats its message", "[core][assert]") {
+TEST_CASE("ZUKIRU_PANICF formats its message", "[core][assert]") {
     HandlerGuard guard;
     try {
-        ZUKI_PANICF("value {} out of range", 7);
+        ZUKIRU_PANICF("value {} out of range", 7);
         FAIL("expected the panic to fire");
     } catch (const AssertFired& e) {
         REQUIRE(e.message == "value 7 out of range");

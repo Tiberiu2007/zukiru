@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-using namespace zuki;
+using namespace zukiru;
 
 TEST_CASE("fixed-width aliases have the advertised sizes", "[core][types]") {
     STATIC_REQUIRE(sizeof(i8) == 1);

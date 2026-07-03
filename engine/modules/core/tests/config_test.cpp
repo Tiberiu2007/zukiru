@@ -2,7 +2,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zuki;
+using namespace zukiru;
 
 TEST_CASE("set / get round-trips typed values", "[core][config]") {
     Config cfg;

@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-namespace zuki {
+namespace zukiru {
 
 // A signed span of time, stored as nanoseconds. Cheap value type.
 class Duration {
@@ -103,4 +103,4 @@ private:
     Instant start_;
 };
 
-}  // namespace zuki
+}  // namespace zukiru

@@ -5,7 +5,7 @@
 #include <charconv>
 #include <format>
 
-namespace zuki {
+namespace zukiru {
 
 bool Config::has(std::string_view key) const {
     return entries_.find(key) != entries_.end();
@@ -123,4 +123,4 @@ std::string Config::toString() const {
     return out;
 }
 
-}  // namespace zuki
+}  // namespace zukiru

@@ -3,8 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zuki::math;
-using zuki::f32;  // f32 lives in the parent zuki namespace, not zuki::math
+using namespace zukiru::math;
+using zukiru::f32;  // f32 lives in the parent zukiru namespace, not zukiru::math
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Transform composes T*R*S consistently", "[math][transform]") {

@@ -27,5 +27,5 @@ TEST_CASE("C++20 language features compile", "[smoke]") {
     using namespace std::literals;
     constexpr auto name = "zukiru"sv;
     REQUIRE(name.size() == 6);
-    REQUIRE(name.starts_with("zuki"));  // C++20 member
+    REQUIRE(name.starts_with("zukiru"));  // C++20 member
 }

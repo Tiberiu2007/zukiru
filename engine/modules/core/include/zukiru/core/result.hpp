@@ -22,7 +22,7 @@
 #include <utility>
 #include <variant>
 
-namespace zuki {
+namespace zukiru {
 
 // Default error type: a human-readable message plus an optional integer code.
 struct Error {
@@ -88,25 +88,25 @@ public:
 
     // Access the success value. Precondition: isOk().
     constexpr T& value() & {
-        ZUKI_ENSURE_MSG(isOk(), "Result::value() called on an error result");
+        ZUKIRU_ENSURE_MSG(isOk(), "Result::value() called on an error result");
         return std::get<0>(storage_);
     }
     constexpr const T& value() const& {
-        ZUKI_ENSURE_MSG(isOk(), "Result::value() called on an error result");
+        ZUKIRU_ENSURE_MSG(isOk(), "Result::value() called on an error result");
         return std::get<0>(storage_);
     }
     constexpr T&& value() && {
-        ZUKI_ENSURE_MSG(isOk(), "Result::value() called on an error result");
+        ZUKIRU_ENSURE_MSG(isOk(), "Result::value() called on an error result");
         return std::get<0>(std::move(storage_));
     }
 
     // Access the error. Precondition: isErr().
     constexpr E& error() & {
-        ZUKI_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
+        ZUKIRU_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
         return std::get<1>(storage_);
     }
     constexpr const E& error() const& {
-        ZUKI_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
+        ZUKIRU_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
         return std::get<1>(storage_);
     }
 
@@ -159,11 +159,11 @@ public:
     constexpr explicit operator bool() const noexcept { return isOk(); }
 
     constexpr E& error() & {
-        ZUKI_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
+        ZUKIRU_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
         return error_;
     }
     constexpr const E& error() const& {
-        ZUKI_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
+        ZUKIRU_ENSURE_MSG(isErr(), "Result::error() called on an ok result");
         return error_;
     }
 
@@ -175,4 +175,4 @@ private:
 // A result that carries no payload on success — just success or an error.
 using Status = Result<void, Error>;
 
-}  // namespace zuki
+}  // namespace zukiru

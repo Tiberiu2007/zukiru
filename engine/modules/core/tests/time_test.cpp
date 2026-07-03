@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zuki;
+using namespace zukiru;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Duration converts between units", "[core][time]") {

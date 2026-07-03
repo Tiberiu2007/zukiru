@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-namespace zuki::math {
+namespace zukiru::math {
 
 struct Quat {
     f32 x = 0.0f;
@@ -118,4 +118,4 @@ struct Quat {
            approxEqual(a.z, b.z, epsilon) && approxEqual(a.w, b.w, epsilon);
 }
 
-}  // namespace zuki::math
+}  // namespace zukiru::math
