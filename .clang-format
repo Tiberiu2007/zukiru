@@ -1,0 +1,43 @@
+# Zukiru code style. See agents/PROJECT_STRUCTURE.md §5.
+# Types PascalCase, functions/vars camelCase, files snake_case, namespace zuki::.
+---
+Language:        Cpp
+BasedOnStyle:    Google
+Standard:        c++20
+ColumnLimit:     100
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: true
+PointerAlignment: Left
+DerivePointerAlignment: false
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBraces: Attach
+BinPackArguments: false
+BinPackParameters: false
+AlwaysBreakTemplateDeclarations: Yes
+EmptyLineBeforeAccessModifier: LogicalBlock
+IncludeBlocks:   Regroup
+SortIncludes:    CaseSensitive
+IncludeCategories:
+  # This module's own public header (paired with the .cpp) — highest priority.
+  - Regex:    '^<zukiru/'
+    Priority: 2
+  # Other project headers.
+  - Regex:    '^"'
+    Priority: 3
+  # C++ standard library.
+  - Regex:    '^<[a-z_]+>$'
+    Priority: 4
+  # Third-party / system headers.
+  - Regex:    '^<'
+    Priority: 5
+SpaceAfterCStyleCast: true
+SpacesBeforeTrailingComments: 2
+Cpp11BracedListStyle: true
+...

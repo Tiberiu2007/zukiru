@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "zukiru",
+  "version-string": "0.1.0",
+  "description": "Zukiru — a modular, data-oriented C++20 game engine.",
+  "homepage": "https://github.com/zukiru/zukiru",
+  "dependencies": [],
+  "features": {
+    "tests": {
+      "description": "Unit + integration test dependencies.",
+      "dependencies": [ "catch2" ]
+    }
+  }
+}
