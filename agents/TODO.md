@@ -35,7 +35,7 @@ Working task list for AI agents and humans. **Read this before starting work; up
   - [ ] Verify Windows build path (thread naming via `SetThreadDescription`, `LoadLibrary`) once a Windows CI runner exists.
 
 ## Milestone 2 — Services (Layer 1)
-- [ ] `jobs` — task/job system, parallel-for
+- [x] `jobs` — task/job system, parallel-for — **done 2026-07-03** (agent: claude-opus-4-8). `zukiru::jobs` namespace, depends on `core` (public) + `platform` (private). `JobSystem` thread pool: `submit` (fire-and-forget), `async` (std::future), `parallelFor` (chunked + auto-chunk), `waitIdle`. Help-while-waiting (blocked threads run pending tasks) prevents nested-dispatch deadlock and idle cores. 9 unit tests, green in `debug` + `release` + `asan` + **`tsan` (no data races)**. README + dep-table entry present.
 - [ ] `filesystem` — virtual FS, mount points, path resolution
 - [ ] `reflect` — runtime type registry (powers serialization + editor)
 - [ ] `event` — event bus / message dispatch
