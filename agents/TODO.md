@@ -38,7 +38,7 @@ Working task list for AI agents and humans. **Read this before starting work; up
 - [x] `jobs` — task/job system, parallel-for — **done 2026-07-03** (agent: claude-opus-4-8). `zukiru::jobs` namespace, depends on `core` (public) + `platform` (private). `JobSystem` thread pool: `submit` (fire-and-forget), `async` (std::future), `parallelFor` (chunked + auto-chunk), `waitIdle`. Help-while-waiting (blocked threads run pending tasks) prevents nested-dispatch deadlock and idle cores. 9 unit tests, green in `debug` + `release` + `asan` + **`tsan` (no data races)**. README + dep-table entry present.
 - [ ] `filesystem` — virtual FS, mount points, path resolution
 - [ ] `reflect` — runtime type registry (powers serialization + editor)
-- [ ] `event` — event bus / message dispatch
+- [x] `event` — event bus / message dispatch — **done 2026-07-03** (agent: claude-opus-4-8). Header-only, `zukiru::event` namespace, depends on `core`. `EventBus` type-safe pub/sub (RTTI-free type ids): `subscribe<E>` returns RAII `Subscription`, `publish<E>` (synchronous, snapshot dispatch — safe to (un)subscribe mid-handler), `enqueue<E>`/`dispatchQueued` (deferred). Not thread-safe by design (one per thread). 10 unit tests, green in `debug` + `release` + `asan`. README + dep-table entry present.
 - [ ] `assets` — async loading, handles, hot-reload, importer registry
 - [ ] `input` — device abstraction, action mapping
 
