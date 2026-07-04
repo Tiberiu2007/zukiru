@@ -1,6 +1,7 @@
 # ADR 0003 — Windowing backend (deferred)
 
-- **Status:** Proposed / deferred
+- **Status:** Superseded by [ADR 0005](0005-native-windowing-backends.md) (2026-07-04)
+  — the deferral below is history; the backend is now **native X11 + Wayland**, not GLFW.
 - **Date:** 2026-07-03
 - **Deciders:** Zukiru foundation work (Milestone 1, `platform`)
 - **Related:** `engine/modules/platform/include/zukiru/platform/window.hpp`

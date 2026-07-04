@@ -41,21 +41,37 @@ Small, blocking helpers returning `Result`/`Status` (from `core`). The async,
 virtual-filesystem layer with mount points is a separate Layer-1 module
 (`filesystem`); this is just the raw primitives.
 
-## Windowing (backend deferred)
+## Windowing
 
-`window.hpp` defines the abstract `Window` interface and `WindowConfig` so the
-renderer and app loop can be designed against them **today**, but no concrete
-backend is wired up yet — `createWindow()` returns an error. Choosing a backend
-(GLFW is the leading candidate) needs a third-party dependency and a display,
-neither of which is available headlessly. Tracked in
-[ADR 0003](../../../docs/adr/0003-windowing-backend.md) and `agents/TODO.md`.
+`window.hpp` defines the abstract `Window` + `WindowConfig`, plus backend-neutral
+`WindowEvent`s and platform-level input codes (`Key`, `MouseButton`, `KeyMods`).
+`createWindow()` picks a **native** backend at runtime — **no GLFW/SDL**:
+
+- **Wayland** (libwayland-client + xdg-shell + xkbcommon) when `WAYLAND_DISPLAY` is set,
+- **X11** (Xlib) when `DISPLAY` is set,
+- otherwise a clear `Error`.
+
+```cpp
+auto win = platform::createWindow({.title = "Zukiru", .width = 1280, .height = 720});
+while (!win.value()->shouldClose()) {
+    win.value()->pollEvents();
+    for (const platform::WindowEvent& e : win.value()->events()) { /* ... */ }
+}
+```
+
+Backends are opt-out via the `ZUKIRU_WINDOW_X11` / `ZUKIRU_WINDOW_WAYLAND` CMake
+options (default ON when their libraries are found). `nativeHandle()` /
+`nativeDisplay()` expose the raw surface + display for a future Vulkan backend.
+Feed events into the `input` module with `input/platform_bridge.hpp`. See
+[ADR 0005](../../../docs/adr/0005-native-windowing-backends.md).
 
 ## Platform support
 
-Implemented and tested on Linux. macOS paths are provided for threads/dylib/IO;
-Windows paths are written behind `ZUKIRU_OS_WINDOWS` but not yet built/verified
-in CI. Thread naming is POSIX-only for now (`setThreadName` returns false
-elsewhere).
+Implemented and tested on Linux (X11 exercised against a live display; Wayland
+builds/links and is validated on a Wayland session). macOS paths exist for
+threads/dylib/IO; Windows paths are written behind `ZUKIRU_OS_WINDOWS` but not yet
+built/verified. **Windowing on Win32 (Cocoa) is future work.** Thread naming is
+POSIX-only for now (`setThreadName` returns false elsewhere).
 
 ## Tests
 
