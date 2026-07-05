@@ -115,6 +115,7 @@ public:
 
     [[nodiscard]] void* nativeHandle() const override { return surface_; }
     [[nodiscard]] void* nativeDisplay() const override { return display_; }
+    [[nodiscard]] NativeBackend nativeBackend() const override { return NativeBackend::Wayland; }
 
 private:
     void push(const WindowEvent& event) { events_.push_back(event); }

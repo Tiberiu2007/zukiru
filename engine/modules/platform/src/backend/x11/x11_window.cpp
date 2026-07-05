@@ -62,6 +62,7 @@ public:
         return reinterpret_cast<void*>(static_cast<std::uintptr_t>(window_));
     }
     [[nodiscard]] void* nativeDisplay() const override { return static_cast<void*>(display_); }
+    [[nodiscard]] NativeBackend nativeBackend() const override { return NativeBackend::X11; }
 
 private:
     void push(const WindowEvent& event) { events_.push_back(event); }

@@ -74,3 +74,52 @@ function(zukiru_require_catch2)
     set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
   endif()
 endfunction()
+
+# Vulkan for the render backend. Provides an INTERFACE target `zukiru_vulkan`
+# carrying the Vulkan headers + the loader. Headers come from a system SDK if one
+# is installed, else Vulkan-Headers via FetchContent (a clean box only ships the
+# runtime loader `libvulkan.so.1`, not the dev headers). Idempotent.
+function(zukiru_require_vulkan)
+  if(TARGET zukiru_vulkan)
+    return()
+  endif()
+
+  # Headers: prefer a discoverable system/SDK copy, else fetch a pinned set.
+  find_path(ZUKIRU_VULKAN_INCLUDE_DIR vulkan/vulkan.h)
+  if(ZUKIRU_VULKAN_INCLUDE_DIR)
+    message(STATUS "Zukiru: using system Vulkan headers at ${ZUKIRU_VULKAN_INCLUDE_DIR}")
+  else()
+    message(STATUS "Zukiru: fetching Vulkan-Headers via FetchContent")
+    # Don't build Vulkan-Headers' optional C++20 module target: we use the classic
+    # C headers, and the module hits a GCC ICE under sanitizer flags.
+    set(VULKAN_HEADERS_ENABLE_MODULE OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(VulkanHeaders
+      GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+      GIT_TAG        v1.3.296
+      GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(VulkanHeaders)  # defines target Vulkan::Headers
+  endif()
+
+  # Loader: many distros ship only the versioned soname (libvulkan.so.1) without
+  # the `.so` dev symlink, so teach find_library to accept it.
+  set(_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.1)
+  find_library(ZUKIRU_VULKAN_LOADER NAMES vulkan vulkan-1)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_saved_suffixes})
+  if(NOT ZUKIRU_VULKAN_LOADER)
+    message(FATAL_ERROR "Zukiru: Vulkan loader (libvulkan) not found")
+  endif()
+  message(STATUS "Zukiru: Vulkan loader at ${ZUKIRU_VULKAN_LOADER}")
+
+  add_library(zukiru_vulkan INTERFACE)
+  target_link_libraries(zukiru_vulkan INTERFACE "${ZUKIRU_VULKAN_LOADER}")
+  # Add the headers as SYSTEM so our -Werror set never fires on the Vulkan
+  # headers' own C-style-cast macros (VK_MAKE_VERSION etc.) at expansion sites.
+  if(TARGET Vulkan::Headers)
+    get_target_property(_vk_inc Vulkan::Headers INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(zukiru_vulkan SYSTEM INTERFACE "${_vk_inc}")
+  else()
+    target_include_directories(zukiru_vulkan SYSTEM INTERFACE "${ZUKIRU_VULKAN_INCLUDE_DIR}")
+  endif()
+endfunction()

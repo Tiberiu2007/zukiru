@@ -113,6 +113,13 @@ enum class WindowMode : u8 {
     BorderlessFullscreen,
 };
 
+// The native windowing system behind a Window, so a renderer can create the
+// matching surface from nativeHandle()/nativeDisplay().
+enum class NativeBackend : u8 {
+    X11,
+    Wayland,
+};
+
 struct WindowExtent {
     u32 width = 0;
     u32 height = 0;
@@ -157,6 +164,10 @@ public:
     // Wayland: nativeHandle() is the wl_surface*, nativeDisplay() the wl_display*.
     [[nodiscard]] virtual void* nativeHandle() const = 0;
     [[nodiscard]] virtual void* nativeDisplay() const = 0;
+
+    // Which native windowing system this window belongs to (picks the surface
+    // type a renderer creates).
+    [[nodiscard]] virtual NativeBackend nativeBackend() const = 0;
 
 protected:
     Window() = default;
