@@ -123,3 +123,42 @@ function(zukiru_require_vulkan)
     target_include_directories(zukiru_vulkan SYSTEM INTERFACE "${ZUKIRU_VULKAN_INCLUDE_DIR}")
   endif()
 endfunction()
+
+# glslang for the offline shader compiler (GLSL -> SPIR-V). No system SPIR-V
+# toolchain is assumed, so glslang is fetched and built. Provides an INTERFACE
+# target `zukiru_glslang` (its headers marked SYSTEM). Only used by tools/, so it
+# is not fetched unless a tool asks for it. Idempotent.
+function(zukiru_require_glslang)
+  if(TARGET zukiru_glslang)
+    return()
+  endif()
+
+  message(STATUS "Zukiru: fetching glslang via FetchContent (shader compiler)")
+  # Trim glslang's build to just the libraries we link.
+  set(GLSLANG_TESTS OFF CACHE BOOL "" FORCE)
+  set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+  set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "" FORCE)
+  set(ENABLE_HLSL OFF CACHE BOOL "" FORCE)
+  set(ENABLE_OPT OFF CACHE BOOL "" FORCE)          # skip SPIRV-Tools optimizer dep
+  set(ENABLE_SPVREMAPPER OFF CACHE BOOL "" FORCE)
+  set(BUILD_EXTERNAL OFF CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(glslang
+    GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
+    GIT_TAG        14.3.0
+    GIT_SHALLOW    TRUE
+  )
+  FetchContent_MakeAvailable(glslang)
+
+  add_library(zukiru_glslang INTERFACE)
+  target_link_libraries(zukiru_glslang INTERFACE glslang SPIRV glslang-default-resource-limits)
+  # Mark glslang's headers SYSTEM so our strict -Werror set never polices them.
+  foreach(_t glslang SPIRV glslang-default-resource-limits)
+    if(TARGET ${_t})
+      get_target_property(_inc ${_t} INTERFACE_INCLUDE_DIRECTORIES)
+      if(_inc)
+        target_include_directories(zukiru_glslang SYSTEM INTERFACE ${_inc})
+      endif()
+    endif()
+  endforeach()
+endfunction()
