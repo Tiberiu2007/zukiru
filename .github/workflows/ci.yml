@@ -31,10 +31,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install toolchain (Ninja)
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build
+          # ninja + pkg-config, the native windowing backends (X11 + Wayland/
+          # xkbcommon + wayland-scanner + protocol XML), and the Vulkan loader
+          # and headers for the render module. The window/GPU tests themselves are
+          # hidden ([.window]/[.gpu]/[.app]) and are not run headlessly, but every
+          # backend still needs its dev libraries to *compile*.
+          sudo apt-get install -y \
+            ninja-build \
+            pkg-config \
+            libx11-dev \
+            libwayland-dev libwayland-bin wayland-protocols \
+            libxkbcommon-dev \
+            libvulkan-dev
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -43,4 +54,4 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }}
 
       - name: Test
-        run: ctest --preset ${{ matrix.preset }}
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
