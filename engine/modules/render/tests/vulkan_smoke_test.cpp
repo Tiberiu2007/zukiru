@@ -2,7 +2,10 @@
 
 #include <zukiru/math/math.hpp>
 #include <zukiru/platform/window.hpp>
+#include <zukiru/render/camera.hpp>
+#include <zukiru/render/primitives.hpp>
 
+#include "cube_shaders.hpp"
 #include "mesh_shaders.hpp"
 #include "tex_shaders.hpp"
 
@@ -192,4 +195,112 @@ TEST_CASE("Vulkan device draws a textured, uniform-transformed triangle", "[.gpu
     device->destroyBuffer(ubo);
     device->destroyBuffer(vbo);
     SUCCEED("drew a textured uniform triangle for 20 frames");
+}
+
+namespace {
+
+// Matches the cube shader's uniform block { mat4 mvp; mat4 model; } (std140).
+struct CubeUniforms {
+    math::Mat4 mvp;
+    math::Mat4 model;
+};
+
+}  // namespace
+
+// A rotating, indexed, textured 3D cube — exercises depth buffering (the far
+// faces must be occluded by the near ones) plus indexed draws and a perspective
+// camera whose matrix is re-uploaded every frame.
+TEST_CASE("Vulkan device draws a depth-tested rotating textured cube", "[.gpu]") {
+    Result<std::unique_ptr<platform::Window>> windowResult =
+        platform::createWindow({.title = "Zukiru cube test", .width = 800, .height = 600});
+    REQUIRE(windowResult.isOk());
+    std::unique_ptr<platform::Window>& window = windowResult.value();
+
+    Result<std::unique_ptr<render::Device>> deviceResult = render::createDevice(*window);
+    if (deviceResult.isErr()) {
+        FAIL(deviceResult.error().message);
+    }
+    std::unique_ptr<render::Device>& device = deviceResult.value();
+    INFO("GPU: " << device->deviceName());
+
+    // Geometry: a unit cube as vertex + index buffers.
+    const render::MeshData cube = render::cubeMesh();
+    const render::BufferHandle vbo = device->createBuffer(
+        render::BufferKind::Vertex, cube.vertices.data(), cube.vertexBytes());
+    const render::BufferHandle ibo =
+        device->createBuffer(render::BufferKind::Index, cube.indices.data(), cube.indexBytes());
+    REQUIRE(vbo.valid());
+    REQUIRE(ibo.valid());
+
+    // A per-frame uniform (mvp + model) and a texture to sample.
+    CubeUniforms uniforms{math::Mat4::identity(), math::Mat4::identity()};
+    const render::BufferHandle ubo =
+        device->createBuffer(render::BufferKind::Uniform, &uniforms, sizeof(uniforms));
+    REQUIRE(ubo.valid());
+    const render::TextureHandle texture = device->createTexture(2, 2, kCheckerPixels);
+    REQUIRE(texture.valid());
+
+    render::PipelineDesc desc;
+    desc.vertexSpirv = render::kCubeVertSpirv;
+    desc.fragmentSpirv = render::kCubeFragSpirv;
+    desc.vertexLayout.stride = sizeof(render::MeshVertex);
+    desc.vertexLayout.attributes = {
+        {.location = 0, .format = render::VertexFormat::Float32x3, .offset = 0},
+        {.location = 1, .format = render::VertexFormat::Float32x3, .offset = sizeof(f32) * 3},
+        {.location = 2, .format = render::VertexFormat::Float32x2, .offset = sizeof(f32) * 6},
+    };
+    desc.bindings = {render::BindingType::UniformBuffer, render::BindingType::Texture};
+    // depthTest / depthWrite default to true — opaque 3D geometry.
+    Result<render::PipelineHandle> pipeline = device->createPipeline(desc);
+    if (pipeline.isErr()) {
+        FAIL(pipeline.error().message);
+    }
+
+    const render::BindGroupEntry entries[] = {
+        {.binding = 0, .buffer = ubo, .texture = {}},
+        {.binding = 1, .buffer = {}, .texture = texture},
+    };
+    Result<render::BindGroupHandle> bindGroup = device->createBindGroup(pipeline.value(), entries);
+    if (bindGroup.isErr()) {
+        FAIL(bindGroup.error().message);
+    }
+
+    render::Camera camera;
+    const platform::WindowExtent extent = window->extent();
+    const f32 aspect = static_cast<f32>(extent.width) / static_cast<f32>(extent.height);
+    camera.setPerspective(math::radians(60.0f), aspect, 0.1f, 100.0f);
+    camera.lookAt({2.5f, 2.0f, 3.0f}, {0.0f, 0.0f, 0.0f}, math::Vec3::unitY());
+
+    device->setClearColor({0.05f, 0.06f, 0.1f, 1.0f});
+    for (int frame = 0; frame < 30; ++frame) {
+        window->pollEvents();
+
+        // Spin the cube; re-upload mvp = viewProjection * model each frame.
+        const f32 angle = static_cast<f32>(frame) * 0.1f;
+        const math::Mat4 model =
+            math::toMat4(math::Quat::fromEuler(angle * 0.5f, angle, 0.0f));
+        uniforms.model = model;
+        uniforms.mvp = camera.viewProjection() * model;
+        device->updateBuffer(ubo, &uniforms, sizeof(uniforms));
+
+        if (!device->beginFrame()) {
+            device->resize(window->extent().width, window->extent().height);
+            continue;
+        }
+        device->bindPipeline(pipeline.value());
+        device->bindBindGroup(bindGroup.value());
+        device->bindVertexBuffer(vbo);
+        device->bindIndexBuffer(ibo, render::IndexType::U16);
+        device->drawIndexed(static_cast<u32>(cube.indices.size()));
+        device->endFrame();
+    }
+
+    device->waitIdle();
+    device->destroyBindGroup(bindGroup.value());
+    device->destroyPipeline(pipeline.value());
+    device->destroyTexture(texture);
+    device->destroyBuffer(ubo);
+    device->destroyBuffer(ibo);
+    device->destroyBuffer(vbo);
+    SUCCEED("drew a depth-tested rotating textured cube for 30 frames");
 }

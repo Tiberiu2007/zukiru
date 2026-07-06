@@ -5,10 +5,11 @@ a **Vulkan** backend, plus cameras. Game/scene code talks to the backend-agnosti
 RHI, never to Vulkan directly, so a second backend (D3D12/Metal) can drop in later.
 
 It brings up the full Vulkan chain (instance → surface → device → swapchain →
-render pass → present) and exposes **GPU buffers** (vertex/index/uniform),
-**textures**, **SPIR-V graphics pipelines**, **bind groups** (uniform + texture
-descriptor sets), and **per-frame command recording** — enough to draw your own
-textured, shader-parameterized geometry. See
+depth buffer → render pass → present) and exposes **GPU buffers**
+(vertex/index/uniform), **textures**, **SPIR-V graphics pipelines**, **bind
+groups** (uniform + texture descriptor sets), **depth testing**, and **per-frame
+command recording** — enough to draw your own textured, depth-tested 3D geometry.
+It also ships **cameras** and **primitive mesh builders**. See
 [ADR 0006](../../../docs/adr/0006-render-architecture.md). Namespace `zukiru::render`.
 
 ## Drawing your own geometry
@@ -74,6 +75,30 @@ Pipelines take **SPIR-V** (`std::span<const u32>`) — produce it offline with
 [`zukiru-shaderc`](../../../tools/shader_compiler) and embed or load it. Viewport/
 scissor are dynamic, so pipelines survive window resizes without a rebuild.
 
+## Depth testing and 3D meshes
+
+Every frame clears and renders through a **depth attachment** sized to the
+swapchain, so 3D geometry occludes correctly without any caller setup. A pipeline
+opts into depth via `PipelineDesc` (both on by default — the right choice for
+opaque geometry):
+
+```cpp
+desc.depthTest = true;   // discard fragments behind what's already drawn
+desc.depthWrite = true;  // record this fragment's depth (turn off for overlays)
+```
+
+`primitives.hpp` builds CPU geometry ready to upload — a `MeshData` is
+interleaved `MeshVertex` (position, normal, uv; stride 32) plus a `u16` index
+buffer:
+
+```cpp
+const render::MeshData cube = render::cubeMesh();
+auto vbo = device->createBuffer(BufferKind::Vertex, cube.vertices.data(), cube.vertexBytes());
+auto ibo = device->createBuffer(BufferKind::Index, cube.indices.data(), cube.indexBytes());
+// attributes: pos @0 (Float32x3), normal @12 (Float32x3), uv @24 (Float32x2)
+// per frame: bindVertexBuffer(vbo); bindIndexBuffer(ibo, IndexType::U16); drawIndexed(36);
+```
+
 ## Cameras
 
 Pure `math`, backend-independent, header-only:
@@ -93,15 +118,17 @@ inverse); `setOrthographic` / `setProjection` / `setView` cover the rest.
 `src/vulkan/` implements the RHI: instance (+ optional validation), a surface from
 the window's native handle (Xlib or Wayland per `platform::Window::nativeBackend()`),
 physical-device selection (graphics+present+swapchain, prefers a discrete GPU),
-logical device, swapchain (format/present-mode/extent), a single-attachment
-render pass (`loadOp=CLEAR`), framebuffers, command buffers, and per-frame sync
-(2 frames in flight). Buffers are host-visible/coherent (map + memcpy); textures
+logical device, swapchain (format/present-mode/extent), a **depth attachment**
+(`D32_SFLOAT` preferred, recreated with the swapchain), a two-attachment render
+pass (color + depth, both `loadOp=CLEAR`), framebuffers, command buffers, and
+per-frame sync (2 frames in flight). Buffers are host-visible/coherent (map + memcpy); textures
 upload through a staging buffer with image-layout transitions (single-time command
 submits) and get a view + linear sampler. Pipelines are built from the
-`PipelineDesc` (SPIR-V + vertex layout + topology + a descriptor-set-0 layout from
-`bindings`) with dynamic viewport/scissor; bind groups are descriptor sets from a
-shared pool. Out-of-date/suboptimal swapchains and `resize()` trigger recreation;
-pipelines and resources are unaffected.
+`PipelineDesc` (SPIR-V + vertex layout + topology + depth test/write + a
+descriptor-set-0 layout from `bindings`) with dynamic viewport/scissor and a
+`LESS_OR_EQUAL` depth compare; bind groups are descriptor sets from a shared pool.
+Out-of-date/suboptimal swapchains and `resize()` trigger recreation (depth
+attachment included); pipelines and resources are unaffected.
 
 - **Vulkan is a private dependency**: headers come from a system SDK or, failing
   that, **Vulkan-Headers via FetchContent** (a clean box ships only
@@ -113,29 +140,32 @@ pipelines and resources are unaffected.
 ## Scope
 
 Buffers (vertex/index/uniform), RGBA8 textures, SPIR-V pipelines with uniform +
-texture bind groups, command recording (draw / draw-indexed), cameras.
+texture bind groups, depth testing, command recording (draw / draw-indexed),
+cameras, primitive meshes (`cubeMesh`).
 **Deferred** (additive, no API break): staging/DEVICE_LOCAL vertex buffers + a real
 GPU allocator (vertex/uniform buffers are host-visible today), per-frame uniform
 ring buffers (`updateBuffer` must not race an in-flight frame), push constants,
-mipmaps, depth/MSAA, a render graph and materials, and additional backends
+mipmaps, MSAA, a render graph and materials, and additional backends
 (D3D12/Metal). Wayland surface support compiles but is runtime-validated only on a
 Wayland session (see ADR 0005).
 
 ## Tests
 
 ```bash
-ctest --preset debug -R '^render\.'          # camera + RHI value types (CI-safe)
-zukiru_render_tests "[.gpu]"                 # real GPU: buffers/textures/pipelines
+ctest --preset debug -R '^render\.'          # camera + RHI + primitives (CI-safe)
+zukiru_render_tests "[.gpu]"                 # real GPU: buffers/textures/pipelines/depth
 ```
 
-Camera math and RHI value types are covered by ordinary unit tests. The hidden
-`[.gpu]` tests open a real window and, on the actual device: draw user geometry
-from a vertex buffer; reject invalid SPIR-V; and draw a **textured, uniform-
-transformed** triangle (uniform `mat4` buffer + a 2×2 checkerboard texture + a
-bind group) — 20 frames with a resize. Verified on an NVIDIA RTX 3060, clean under
-ASan. The demo shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are
-embedded as SPIR-V by `zukiru-shaderc` — so the render module itself needs no
-shader compiler at build or run time.
+Camera math, RHI value types, and `cubeMesh` geometry are covered by ordinary unit
+tests. The hidden `[.gpu]` tests open a real window and, on the actual device: draw
+user geometry from a vertex buffer; reject invalid SPIR-V; draw a **textured,
+uniform-transformed** triangle (uniform `mat4` + a 2×2 checkerboard texture + a bind
+group); and draw a **depth-tested rotating textured cube** (indexed `cubeMesh`, a
+perspective camera whose mvp is re-uploaded each frame, near faces occluding far
+ones). Verified on an NVIDIA RTX 3060, clean under ASan. The demo shaders live in
+[`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V by
+`zukiru-shaderc` — so the render module itself needs no shader compiler at build or
+run time.
 
 ## Dependencies
 

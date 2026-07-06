@@ -131,6 +131,12 @@ struct PipelineDesc {
     // Shader resource slots (descriptor set 0); entry i is binding i. Empty for a
     // pipeline that reads no uniforms/textures.
     std::vector<BindingType> bindings;
+    // Depth testing against the swapchain's depth buffer. `depthTest` discards
+    // fragments behind what's already drawn; `depthWrite` records this fragment's
+    // depth for later fragments (turn off for translucent/overlay passes). Both
+    // on by default — the right choice for opaque 3D geometry.
+    bool depthTest = true;
+    bool depthWrite = true;
 };
 
 // One resource in a bind group. Set `buffer` for a UniformBuffer binding and
