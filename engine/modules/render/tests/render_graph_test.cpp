@@ -26,8 +26,14 @@ public:
         return Ok(BindGroupHandle{});
     }
     void destroyBindGroup(BindGroupHandle) override {}
+    RenderTargetHandle createRenderTarget(const RenderTargetDesc&) override { return {}; }
+    void destroyRenderTarget(RenderTargetHandle) override {}
+    [[nodiscard]] TextureHandle renderTargetTexture(RenderTargetHandle) const override { return {}; }
     bool beginFrame() override { return true; }
     void endFrame() override {}
+    void beginRenderPass(RenderTargetHandle) override {}
+    void beginSwapchainPass() override {}
+    void endRenderPass() override {}
     void bindPipeline(PipelineHandle) override {}
     void bindBindGroup(BindGroupHandle) override {}
     void bindVertexBuffer(BufferHandle) override {}

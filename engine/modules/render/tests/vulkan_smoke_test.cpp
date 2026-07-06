@@ -8,6 +8,7 @@
 #include <zukiru/render/render_graph.hpp>
 
 #include "cube_shaders.hpp"
+#include "fullscreen_shaders.hpp"
 #include "mesh_shaders.hpp"
 #include "tex_shaders.hpp"
 
@@ -79,9 +80,11 @@ TEST_CASE("Vulkan device draws user geometry", "[.gpu]") {
             device->resize(window->extent().width, window->extent().height);
             continue;
         }
+        device->beginSwapchainPass();
         device->bindPipeline(pipeline.value());
         device->bindVertexBuffer(vbo);
         device->draw(3);
+        device->endRenderPass();
         device->endFrame();
     }
 
@@ -183,10 +186,12 @@ TEST_CASE("Vulkan device draws a textured, uniform-transformed triangle", "[.gpu
             device->resize(window->extent().width, window->extent().height);
             continue;
         }
+        device->beginSwapchainPass();
         device->bindPipeline(pipeline.value());
         device->bindBindGroup(bindGroup.value());
         device->bindVertexBuffer(vbo);
         device->draw(3);
+        device->endRenderPass();
         device->endFrame();
     }
 
@@ -289,11 +294,13 @@ TEST_CASE("Vulkan device draws a depth-tested rotating textured cube", "[.gpu]")
             device->resize(window->extent().width, window->extent().height);
             continue;
         }
+        device->beginSwapchainPass();
         device->bindPipeline(pipeline.value());
         device->bindBindGroup(bindGroup.value());
         device->bindVertexBuffer(vbo);
         device->bindIndexBuffer(ibo, render::IndexType::U16);
         device->drawIndexed(static_cast<u32>(cube.indices.size()));
+        device->endRenderPass();
         device->endFrame();
     }
 
@@ -386,7 +393,9 @@ TEST_CASE("Vulkan device draws a material through a render graph", "[.gpu]") {
             device->resize(window->extent().width, window->extent().height);
             continue;
         }
+        device->beginSwapchainPass();
         graph.execute(*device, compiled.value());
+        device->endRenderPass();
         device->endFrame();
     }
 
@@ -397,4 +406,126 @@ TEST_CASE("Vulkan device draws a material through a render graph", "[.gpu]") {
     device->destroyBuffer(ibo);
     device->destroyBuffer(vbo);
     SUCCEED("drew a material through a render graph for 30 frames");
+}
+
+// Two passes in one frame: render the cube into an offscreen target, then sample
+// that target onto the screen with a fullscreen triangle. Exercises render targets,
+// render-target-as-texture, and cross-pass synchronization.
+TEST_CASE("Vulkan device renders offscreen and samples the result to screen", "[.gpu]") {
+    Result<std::unique_ptr<platform::Window>> windowResult =
+        platform::createWindow({.title = "Zukiru offscreen test", .width = 800, .height = 600});
+    REQUIRE(windowResult.isOk());
+    std::unique_ptr<platform::Window>& window = windowResult.value();
+
+    Result<std::unique_ptr<render::Device>> deviceResult = render::createDevice(*window);
+    if (deviceResult.isErr()) {
+        FAIL(deviceResult.error().message);
+    }
+    std::unique_ptr<render::Device>& device = deviceResult.value();
+    INFO("GPU: " << device->deviceName());
+
+    // Offscreen target the cube is rendered into.
+    const render::RenderTargetHandle target =
+        device->createRenderTarget({.width = 512, .height = 512, .clearColor = {0.1f, 0.05f, 0.2f, 1.0f}});
+    REQUIRE(target.valid());
+    const render::TextureHandle targetTexture = device->renderTargetTexture(target);
+    REQUIRE(targetTexture.valid());
+
+    // Cube geometry + a uniform transform + a checker texture.
+    const render::MeshData cube = render::cubeMesh();
+    const render::BufferHandle vbo = device->createBuffer(
+        render::BufferKind::Vertex, cube.vertices.data(), cube.vertexBytes());
+    const render::BufferHandle ibo =
+        device->createBuffer(render::BufferKind::Index, cube.indices.data(), cube.indexBytes());
+    const render::TextureHandle checker = device->createTexture(2, 2, kCheckerPixels);
+
+    struct CubeUbo {
+        math::Mat4 mvp;
+        math::Mat4 model;
+    } ubo{math::Mat4::identity(), math::Mat4::identity()};
+    const render::BufferHandle uboBuffer =
+        device->createBuffer(render::BufferKind::Uniform, &ubo, sizeof(ubo));
+
+    render::PipelineDesc cubeDesc;
+    cubeDesc.vertexSpirv = render::kCubeVertSpirv;
+    cubeDesc.fragmentSpirv = render::kCubeFragSpirv;
+    cubeDesc.vertexLayout.stride = sizeof(render::MeshVertex);
+    cubeDesc.vertexLayout.attributes = {
+        {.location = 0, .format = render::VertexFormat::Float32x3, .offset = 0},
+        {.location = 1, .format = render::VertexFormat::Float32x3, .offset = sizeof(f32) * 3},
+        {.location = 2, .format = render::VertexFormat::Float32x2, .offset = sizeof(f32) * 6},
+    };
+    cubeDesc.bindings = {render::BindingType::UniformBuffer, render::BindingType::Texture};
+    Result<render::PipelineHandle> cubePipeline = device->createPipeline(cubeDesc);
+    REQUIRE(cubePipeline.isOk());
+    const render::BindGroupEntry cubeEntries[] = {
+        {.binding = 0, .buffer = uboBuffer, .texture = {}},
+        {.binding = 1, .buffer = {}, .texture = checker},
+    };
+    Result<render::BindGroupHandle> cubeGroup =
+        device->createBindGroup(cubePipeline.value(), cubeEntries);
+    REQUIRE(cubeGroup.isOk());
+
+    // Fullscreen pass: a vertexless triangle sampling the offscreen target's color.
+    render::PipelineDesc fsDesc;
+    fsDesc.vertexSpirv = render::kFullscreenVertSpirv;
+    fsDesc.fragmentSpirv = render::kFullscreenFragSpirv;
+    fsDesc.bindings = {render::BindingType::Texture};  // no vertex buffer, no depth
+    fsDesc.depthTest = false;
+    fsDesc.depthWrite = false;
+    Result<render::PipelineHandle> fsPipeline = device->createPipeline(fsDesc);
+    REQUIRE(fsPipeline.isOk());
+    const render::BindGroupEntry fsEntries[] = {
+        {.binding = 0, .buffer = {}, .texture = targetTexture},
+    };
+    Result<render::BindGroupHandle> fsGroup =
+        device->createBindGroup(fsPipeline.value(), fsEntries);
+    REQUIRE(fsGroup.isOk());
+
+    render::Camera camera;
+    camera.setPerspective(math::radians(60.0f), 1.0f, 0.1f, 100.0f);  // 1:1 offscreen target
+    camera.lookAt({2.5f, 2.0f, 3.0f}, {0.0f, 0.0f, 0.0f}, math::Vec3::unitY());
+
+    device->setClearColor({0.0f, 0.0f, 0.0f, 1.0f});
+    for (int frame = 0; frame < 30; ++frame) {
+        window->pollEvents();
+
+        const f32 angle = static_cast<f32>(frame) * 0.1f;
+        const math::Mat4 model = math::toMat4(math::Quat::fromEuler(angle * 0.5f, angle, 0.0f));
+        ubo.model = model;
+        ubo.mvp = camera.viewProjection() * model;
+        device->updateBuffer(uboBuffer, &ubo, sizeof(ubo));
+
+        if (!device->beginFrame()) {
+            device->resize(window->extent().width, window->extent().height);
+            continue;
+        }
+        // Pass 1: draw the cube into the offscreen target.
+        device->beginRenderPass(target);
+        device->bindPipeline(cubePipeline.value());
+        device->bindBindGroup(cubeGroup.value());
+        device->bindVertexBuffer(vbo);
+        device->bindIndexBuffer(ibo, render::IndexType::U16);
+        device->drawIndexed(static_cast<u32>(cube.indices.size()));
+        device->endRenderPass();
+        // Pass 2: composite the target onto the screen.
+        device->beginSwapchainPass();
+        device->bindPipeline(fsPipeline.value());
+        device->bindBindGroup(fsGroup.value());
+        device->draw(3);
+        device->endRenderPass();
+        device->endFrame();
+    }
+
+    device->waitIdle();
+    device->destroyBindGroup(fsGroup.value());
+    device->destroyBindGroup(cubeGroup.value());
+    device->destroyPipeline(fsPipeline.value());
+    device->destroyPipeline(cubePipeline.value());
+    device->destroyRenderTarget(target);  // frees its color texture too
+    device->destroyTexture(checker);
+    device->destroyBuffer(uboBuffer);
+    device->destroyBuffer(ibo);
+    device->destroyBuffer(vbo);
+    SUCCEED("rendered offscreen and composited to screen for 30 frames");
 }

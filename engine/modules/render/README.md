@@ -11,8 +11,10 @@ groups** (uniform + texture descriptor sets), **depth testing**, and **per-frame
 command recording** — enough to draw your own textured, depth-tested 3D geometry.
 On top of the RHI it adds **materials** (a pipeline + named parameters) and a
 **render graph** (a frame organizer), and it ships **cameras** and **primitive
-mesh builders**. See [ADR 0006](../../../docs/adr/0006-render-architecture.md) and
-[ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md). Namespace `zukiru::render`.
+mesh builders**, and **offscreen render targets** (render into a texture, sample it
+in a later pass). See [ADR 0006](../../../docs/adr/0006-render-architecture.md),
+[ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md), and
+[ADR 0009](../../../docs/adr/0009-offscreen-render-targets.md). Namespace `zukiru::render`.
 
 ## Drawing your own geometry
 
@@ -35,21 +37,24 @@ auto pipeline = device->createPipeline(desc).value();
 
 while (running) {
     if (!device->beginFrame()) { device->resize(w, h); continue; }
+    device->beginSwapchainPass();     // open a pass before recording draws
     device->bindPipeline(pipeline);
     device->bindVertexBuffer(vbo);
     device->draw(3);
+    device->endRenderPass();
     device->endFrame();
 }
 ```
 
 `Device` is **backend-agnostic** — no Vulkan types leak into the public headers.
 It exposes: resources (`createBuffer` (Vertex/Index/Uniform) + `updateBuffer`,
-`createTexture` (RGBA8), `createPipeline`, `createBindGroup`, and `destroy*` —
-opaque `BufferHandle`/`TextureHandle`/`PipelineHandle`/`BindGroupHandle`); the
-frame (`beginFrame` clears + opens the render pass, `endFrame` submits + presents);
-recording between the two (`bindPipeline`, `bindBindGroup`, `bindVertexBuffer`,
-`bindIndexBuffer`, `draw`, `drawIndexed`); plus `setClearColor`, `resize`,
-`waitIdle`, `backend()`, `deviceName()`.
+`createTexture` (RGBA8), `createRenderTarget`, `createPipeline`, `createBindGroup`,
+and `destroy*` — opaque `BufferHandle`/`TextureHandle`/`RenderTargetHandle`/
+`PipelineHandle`/`BindGroupHandle`); the **frame** (`beginFrame` acquires, `endFrame`
+submits + presents) and **passes** within it (`beginSwapchainPass` /
+`beginRenderPass(target)` / `endRenderPass` — one open at a time); recording inside a
+pass (`bindPipeline`, `bindBindGroup`, `bindVertexBuffer`, `bindIndexBuffer`, `draw`,
+`drawIndexed`); plus `setClearColor`, `resize`, `waitIdle`, `backend()`, `deviceName()`.
 
 ## Uniforms and textures
 
@@ -152,10 +157,44 @@ if (auto compiled = graph.compile(); compiled) {
 ```
 
 Passes writing an **imported** resource are always live (observable side effects);
-everything else survives only if it feeds one. Today every pass records into the
-current framebuffer — physical allocation of transient render targets and automatic
-barriers are **deferred** until the RHI gains offscreen targets (ADR 0008), and slot
-in without changing this API.
+everything else survives only if it feeds one. The graph doesn't yet allocate
+physical render targets from its virtual resources automatically — that transient
+allocation + auto-barrier layer is **deferred** (ADR 0008/0009) and slots in without
+changing this API. The RHI primitive it needs — offscreen render targets — now
+exists and can be wired by hand:
+
+## Render targets
+
+A **render target** is a texture you draw into (in one pass) and sample (in a
+later one) — the basis of shadow maps, post-processing, and deferred shading. A
+frame separates the **frame** (`beginFrame`/`endFrame`) from **passes**; open a pass
+into a target or the swapchain, one at a time:
+
+```cpp
+auto target = device->createRenderTarget({.width = 512, .height = 512,
+                                          .clearColor = {0.1f, 0.05f, 0.2f, 1.0f}});
+auto targetTex = device->renderTargetTexture(target);   // its color, as a texture
+// ...a fullscreen pipeline + bind group that sample targetTex...
+
+if (device->beginFrame()) {
+    device->beginRenderPass(target);      // pass 1 → offscreen
+    device->bindPipeline(scenePipeline); device->drawIndexed(count);
+    device->endRenderPass();
+
+    device->beginSwapchainPass();         // pass 2 → screen, sampling the target
+    device->bindPipeline(fullscreenPipeline); device->bindBindGroup(postGroup);
+    device->draw(3);
+    device->endRenderPass();
+    device->endFrame();
+}
+```
+
+A target's color attachment uses the **swapchain's format** and gets a depth buffer,
+so any pipeline built for the window renders into it unchanged. Its render pass
+leaves the color in a shader-readable layout with the write→sample dependency baked
+in — the next pass's sampling waits automatically, no manual barrier. Targets are
+fixed-size (they don't follow swapchain resizes) and own their color texture (don't
+`destroyTexture` it — `destroyRenderTarget` frees it).
 
 ## Cameras
 
@@ -186,7 +225,10 @@ submits) and get a view + linear sampler. Pipelines are built from the
 descriptor-set-0 layout from `bindings`) with dynamic viewport/scissor and a
 `LESS_OR_EQUAL` depth compare; bind groups are descriptor sets from a shared pool.
 Out-of-date/suboptimal swapchains and `resize()` trigger recreation (depth
-attachment included); pipelines and resources are unaffected.
+attachment included); pipelines and resources are unaffected. Offscreen render
+targets are a sampleable color image (swapchain format, registered in the texture
+table) + a depth image, wrapped in their own render pass (color `finalLayout =
+SHADER_READ_ONLY` with write→sample subpass dependencies) and framebuffer.
 
 - **Vulkan is a private dependency**: headers come from a system SDK or, failing
   that, **Vulkan-Headers via FetchContent** (a clean box ships only
@@ -197,17 +239,19 @@ attachment included); pipelines and resources are unaffected.
 
 ## Scope
 
-Buffers (vertex/index/uniform), RGBA8 textures, SPIR-V pipelines with uniform +
-texture bind groups, depth testing, command recording (draw / draw-indexed),
-materials (pipeline + std140 params + textures), a render graph (pass scheduling +
-culling), cameras, primitive meshes (`cubeMesh`).
+Buffers (vertex/index/uniform), RGBA8 textures, offscreen render targets, SPIR-V
+pipelines with uniform + texture bind groups, depth testing, explicit passes +
+command recording (draw / draw-indexed), materials (pipeline + std140 params +
+textures), a render graph (pass scheduling + culling), cameras, primitive meshes
+(`cubeMesh`).
 **Deferred** (additive, no API break): staging/DEVICE_LOCAL vertex buffers + a real
 GPU allocator (vertex/uniform buffers are host-visible today), per-frame uniform
 ring buffers (`updateBuffer` must not race an in-flight frame), push constants,
-mipmaps, MSAA, **offscreen render targets** (and with them the render graph's
-physical transient-resource allocation + automatic barriers), and additional
-backends (D3D12/Metal). Wayland surface support compiles but is runtime-validated
-only on a Wayland session (see ADR 0005).
+mipmaps, MSAA, depth-only/HDR render targets + MRT, the render graph's **physical
+transient-target allocation + automatic barriers** (the render-target primitive now
+exists; the graph doesn't auto-allocate yet), and additional backends (D3D12/Metal).
+Wayland surface support compiles but is runtime-validated only on a Wayland session
+(see ADR 0005).
 
 ## Tests
 
@@ -222,9 +266,11 @@ execute dispatch via a stub device) are covered by ordinary unit tests. The hidd
 `[.gpu]` tests open a real window and, on the actual device: draw user geometry from
 a vertex buffer; reject invalid SPIR-V; draw a **textured, uniform-transformed**
 triangle; draw a **depth-tested rotating textured cube** (indexed `cubeMesh`,
-perspective camera, near faces occluding far); and draw a **material through a render
-graph** (the cube again, its uniforms/bind group owned by a `Material` recorded
-inside a graph pass). Verified on an NVIDIA RTX 3060, clean under ASan. The demo
+perspective camera, near faces occluding far); draw a **material through a render
+graph** (the cube, its uniforms/bind group owned by a `Material` recorded inside a
+graph pass); and **render offscreen then composite to screen** (the cube into a 512²
+render target, sampled onto the window by a vertexless fullscreen triangle — two
+passes in one frame). Verified on an NVIDIA RTX 3060, clean under ASan. The demo
 shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V
 by `zukiru-shaderc` — so the render module itself needs no shader compiler at build
 or run time.

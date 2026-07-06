@@ -23,9 +23,20 @@ TEST_CASE("resource handles default to invalid", "[render][rhi]") {
     REQUIRE_FALSE(PipelineHandle{}.valid());
     REQUIRE_FALSE(TextureHandle{}.valid());
     REQUIRE_FALSE(BindGroupHandle{}.valid());
+    REQUIRE_FALSE(RenderTargetHandle{}.valid());
     REQUIRE(BufferHandle{7}.valid());
     REQUIRE(BufferHandle{7} == BufferHandle{7});
     REQUIRE_FALSE(BufferHandle{7} == BufferHandle{8});
+    REQUIRE(RenderTargetHandle{3}.valid());
+    REQUIRE(RenderTargetHandle{3} == RenderTargetHandle{3});
+}
+
+TEST_CASE("a render target defaults to zero-sized with an opaque-black clear",
+          "[render][rhi]") {
+    const RenderTargetDesc desc;
+    REQUIRE(desc.width == 0);
+    REQUIRE(desc.height == 0);
+    REQUIRE(desc.clearColor == Color{0.0f, 0.0f, 0.0f, 1.0f});
 }
 
 TEST_CASE("a pipeline declares resource bindings; a bind group fills them", "[render][rhi]") {

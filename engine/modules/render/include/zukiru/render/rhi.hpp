@@ -13,9 +13,11 @@
 //
 //   while (running) {
 //       if (!device->beginFrame()) { device->resize(w, h); continue; }
+//       device->beginSwapchainPass();
 //       device->bindPipeline(pipeline.value());
 //       device->bindVertexBuffer(vbo);
 //       device->draw(3);
+//       device->endRenderPass();
 //       device->endFrame();
 //   }
 #pragma once
@@ -74,6 +76,15 @@ struct BindGroupHandle {
     u32 id = 0;
     [[nodiscard]] constexpr bool valid() const noexcept { return id != 0; }
     friend constexpr bool operator==(BindGroupHandle, BindGroupHandle) = default;
+};
+
+// An offscreen render target: a color texture (+ depth) drawn into by a pass and
+// then sampled by a later one. Its color attachment is exposed as a TextureHandle
+// via `renderTargetTexture`.
+struct RenderTargetHandle {
+    u32 id = 0;
+    [[nodiscard]] constexpr bool valid() const noexcept { return id != 0; }
+    friend constexpr bool operator==(RenderTargetHandle, RenderTargetHandle) = default;
 };
 
 enum class BufferKind : u8 {
@@ -147,6 +158,15 @@ struct BindGroupEntry {
     TextureHandle texture{};
 };
 
+// An offscreen render target. Its color attachment uses the swapchain's format and
+// gets a depth buffer, so any pipeline built for the window renders into it
+// unchanged. Fixed-size — it does not follow swapchain resizes.
+struct RenderTargetDesc {
+    u32 width = 0;
+    u32 height = 0;
+    Color clearColor{};  // applied when a pass begins on this target
+};
+
 // --- Device ---------------------------------------------------------------
 
 // A GPU device bound to a window's swapchain.
@@ -183,16 +203,38 @@ public:
         PipelineHandle pipeline, std::span<const BindGroupEntry> entries) = 0;
     virtual void destroyBindGroup(BindGroupHandle group) = 0;
 
+    // Create an offscreen render target (color + depth). Returns an invalid handle
+    // on failure.
+    [[nodiscard]] virtual RenderTargetHandle createRenderTarget(const RenderTargetDesc& desc) = 0;
+    virtual void destroyRenderTarget(RenderTargetHandle target) = 0;
+
+    // The target's color attachment as a sampleable texture — pass it to a bind
+    // group after the target has been rendered to. Do not destroyTexture() it; it
+    // is owned by the render target.
+    [[nodiscard]] virtual TextureHandle renderTargetTexture(RenderTargetHandle target) const = 0;
+
     // --- Frame -----------------------------------------------------------
 
-    // Acquire the next swapchain image, clear it, and open command recording.
-    // Returns false if the swapchain is out of date — call resize() and retry.
+    // Acquire the next swapchain image and open command recording. Returns false if
+    // the swapchain is out of date — call resize() and retry. Open a pass
+    // (beginSwapchainPass / beginRenderPass) before recording any draws.
     [[nodiscard]] virtual bool beginFrame() = 0;
 
-    // Close recording, submit, and present.
+    // Close recording, submit, and present. Any open pass must already be ended.
     virtual void endFrame() = 0;
 
-    // --- Recording (valid only between beginFrame and endFrame) ----------
+    // --- Passes (valid between beginFrame and endFrame) ------------------
+    // Exactly one pass is open at a time. Draws are recorded into the open pass.
+
+    // Open a pass rendering into an offscreen target (cleared to its clear color).
+    virtual void beginRenderPass(RenderTargetHandle target) = 0;
+    // Open the pass rendering into the window's swapchain image (cleared to the
+    // clear color set by setClearColor).
+    virtual void beginSwapchainPass() = 0;
+    // Close the currently open pass. A target's color is ready to sample afterward.
+    virtual void endRenderPass() = 0;
+
+    // --- Recording (valid only inside an open pass) ----------------------
 
     virtual void bindPipeline(PipelineHandle pipeline) = 0;
     virtual void bindBindGroup(BindGroupHandle group) = 0;

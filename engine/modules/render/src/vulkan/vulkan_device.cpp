@@ -83,6 +83,17 @@ struct VulkanBindGroup {
     VkPipelineLayout layout = VK_NULL_HANDLE;  // the pipeline layout it was built for
 };
 
+struct VulkanRenderTarget {
+    u32 colorTextureId = 0;  // the sampleable color attachment, stored in textures_
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory depthMemory = VK_NULL_HANDLE;
+    VkImageView depthView = VK_NULL_HANDLE;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkFramebuffer framebuffer = VK_NULL_HANDLE;
+    VkExtent2D extent{};
+    Color clearColor{};
+};
+
 [[nodiscard]] VkDescriptorType toVkDescriptorType(BindingType type) {
     return type == BindingType::UniformBuffer ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
                                               : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -349,6 +360,78 @@ public:
         bindGroups_.erase(it);
     }
 
+    RenderTargetHandle createRenderTarget(const RenderTargetDesc& desc) override {
+        if (desc.width == 0 || desc.height == 0) return {};
+        VulkanRenderTarget target;
+        target.extent = {desc.width, desc.height};
+        target.clearColor = desc.clearColor;
+
+        // Color attachment — swapchain format so any window pipeline renders into it
+        // unchanged; SAMPLED so a later pass can read it. Registered as a texture.
+        VulkanTexture color;
+        if (!allocateImage(desc.width, desc.height, surfaceFormat_.format,
+                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                           VK_IMAGE_ASPECT_COLOR_BIT, color.image, color.memory, color.view)) {
+            return {};
+        }
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+        vkCreateSampler(device_, &samplerInfo, nullptr, &color.sampler);
+        target.colorTextureId = nextTextureId_++;
+        textures_[target.colorTextureId] = color;
+
+        // Depth attachment (not sampled).
+        if (!allocateImage(desc.width, desc.height, depthFormat_,
+                           VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+                           target.depthImage, target.depthMemory, target.depthView)) {
+            destroyTextureResources(color);
+            textures_.erase(target.colorTextureId);
+            return {};
+        }
+
+        if (!buildRenderTargetPass(target.renderPass)) {
+            destroyRenderTargetResources(target);
+            return {};
+        }
+
+        const VkImageView attachments[] = {color.view, target.depthView};
+        VkFramebufferCreateInfo fbInfo{};
+        fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fbInfo.renderPass = target.renderPass;
+        fbInfo.attachmentCount = 2;
+        fbInfo.pAttachments = attachments;
+        fbInfo.width = desc.width;
+        fbInfo.height = desc.height;
+        fbInfo.layers = 1;
+        if (vkCreateFramebuffer(device_, &fbInfo, nullptr, &target.framebuffer) != VK_SUCCESS) {
+            destroyRenderTargetResources(target);
+            return {};
+        }
+
+        const u32 id = nextRenderTargetId_++;
+        renderTargets_[id] = target;
+        return RenderTargetHandle{id};
+    }
+
+    void destroyRenderTarget(RenderTargetHandle handle) override {
+        const auto it = renderTargets_.find(handle.id);
+        if (it == renderTargets_.end()) return;
+        destroyRenderTargetResources(it->second);
+        renderTargets_.erase(it);
+    }
+
+    TextureHandle renderTargetTexture(RenderTargetHandle handle) const override {
+        const auto it = renderTargets_.find(handle.id);
+        if (it == renderTargets_.end()) return {};
+        return TextureHandle{it->second.colorTextureId};
+    }
+
     // --- Frame -----------------------------------------------------------
 
     bool beginFrame() override {
@@ -370,7 +453,15 @@ public:
         VkCommandBufferBeginInfo begin{};
         begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         vkBeginCommandBuffer(cmd, &begin);
+        // The command buffer is open but no render pass is — the caller opens one
+        // with beginSwapchainPass / beginRenderPass before recording draws.
+        return true;
+    }
 
+    // --- Passes ----------------------------------------------------------
+
+    void beginSwapchainPass() override {
+        VkCommandBuffer cmd = commandBuffers_[currentFrame_];
         VkClearValue clears[2]{};
         clears[0].color = {{clearColor_.r, clearColor_.g, clearColor_.b, clearColor_.a}};
         clears[1].depthStencil = {1.0f, 0};  // farthest depth
@@ -382,23 +473,35 @@ public:
         pass.clearValueCount = 2;
         pass.pClearValues = clears;
         vkCmdBeginRenderPass(cmd, &pass, VK_SUBPASS_CONTENTS_INLINE);
+        setViewportScissor(cmd, extent_);
+    }
 
-        // Default dynamic viewport/scissor to the full swapchain image so callers
-        // don't have to set them for the common case.
-        VkViewport viewport{};
-        viewport.width = static_cast<f32>(extent_.width);
-        viewport.height = static_cast<f32>(extent_.height);
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        VkRect2D scissor{};
-        scissor.extent = extent_;
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-        return true;
+    void beginRenderPass(RenderTargetHandle handle) override {
+        const auto it = renderTargets_.find(handle.id);
+        if (it == renderTargets_.end()) return;
+        const VulkanRenderTarget& target = it->second;
+        VkCommandBuffer cmd = commandBuffers_[currentFrame_];
+        VkClearValue clears[2]{};
+        clears[0].color = {{target.clearColor.r, target.clearColor.g, target.clearColor.b,
+                            target.clearColor.a}};
+        clears[1].depthStencil = {1.0f, 0};
+        VkRenderPassBeginInfo pass{};
+        pass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        pass.renderPass = target.renderPass;
+        pass.framebuffer = target.framebuffer;
+        pass.renderArea.extent = target.extent;
+        pass.clearValueCount = 2;
+        pass.pClearValues = clears;
+        vkCmdBeginRenderPass(cmd, &pass, VK_SUBPASS_CONTENTS_INLINE);
+        setViewportScissor(cmd, target.extent);
+    }
+
+    void endRenderPass() override {
+        vkCmdEndRenderPass(commandBuffers_[currentFrame_]);
     }
 
     void endFrame() override {
         VkCommandBuffer cmd = commandBuffers_[currentFrame_];
-        vkCmdEndRenderPass(cmd);
         vkEndCommandBuffer(cmd);
 
         vkResetFences(device_, 1, &inFlight_[currentFrame_]);
@@ -697,6 +800,160 @@ private:
         }
         vkBindBufferMemory(device_, outBuffer, outMemory, 0);
         return true;
+    }
+
+    // Create an image + backing device-local memory + a view in one shot.
+    bool allocateImage(u32 width, u32 height, VkFormat format, VkImageUsageFlags usage,
+                       VkImageAspectFlags aspect, VkImage& outImage, VkDeviceMemory& outMemory,
+                       VkImageView& outView) {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent = {width, height, 1};
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = format;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateImage(device_, &imageInfo, nullptr, &outImage) != VK_SUCCESS) return false;
+
+        VkMemoryRequirements requirements{};
+        vkGetImageMemoryRequirements(device_, outImage, &requirements);
+        VkMemoryAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc.allocationSize = requirements.size;
+        alloc.memoryTypeIndex =
+            findMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        if (vkAllocateMemory(device_, &alloc, nullptr, &outMemory) != VK_SUCCESS) {
+            vkDestroyImage(device_, outImage, nullptr);
+            outImage = VK_NULL_HANDLE;
+            return false;
+        }
+        vkBindImageMemory(device_, outImage, outMemory, 0);
+
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = outImage;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.subresourceRange.aspectMask = aspect;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.layerCount = 1;
+        if (vkCreateImageView(device_, &viewInfo, nullptr, &outView) != VK_SUCCESS) {
+            vkDestroyImage(device_, outImage, nullptr);
+            vkFreeMemory(device_, outMemory, nullptr);
+            outImage = VK_NULL_HANDLE;
+            outMemory = VK_NULL_HANDLE;
+            return false;
+        }
+        return true;
+    }
+
+    void destroyTextureResources(const VulkanTexture& texture) {
+        vkDestroySampler(device_, texture.sampler, nullptr);
+        vkDestroyImageView(device_, texture.view, nullptr);
+        vkDestroyImage(device_, texture.image, nullptr);
+        vkFreeMemory(device_, texture.memory, nullptr);
+    }
+
+    // Free a render target's own resources (framebuffer / render pass / depth) and
+    // its color texture entry. Safe to call on a partially-built target.
+    void destroyRenderTargetResources(VulkanRenderTarget& target) {
+        if (target.framebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(device_, target.framebuffer, nullptr);
+        }
+        if (target.renderPass != VK_NULL_HANDLE) {
+            vkDestroyRenderPass(device_, target.renderPass, nullptr);
+        }
+        if (target.depthView != VK_NULL_HANDLE) vkDestroyImageView(device_, target.depthView, nullptr);
+        if (target.depthImage != VK_NULL_HANDLE) vkDestroyImage(device_, target.depthImage, nullptr);
+        if (target.depthMemory != VK_NULL_HANDLE) vkFreeMemory(device_, target.depthMemory, nullptr);
+        const auto it = textures_.find(target.colorTextureId);
+        if (it != textures_.end()) {
+            destroyTextureResources(it->second);
+            textures_.erase(it);
+        }
+    }
+
+    // Render pass for an offscreen target: color (→ SHADER_READ_ONLY, ready to
+    // sample) + depth, with dependencies syncing sampling around the color writes.
+    bool buildRenderTargetPass(VkRenderPass& out) {
+        VkAttachmentDescription color{};
+        color.format = surfaceFormat_.format;
+        color.samples = VK_SAMPLE_COUNT_1_BIT;
+        color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        color.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkAttachmentDescription depth{};
+        depth.format = depthFormat_;
+        depth.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference colorRef{};
+        colorRef.attachment = 0;
+        colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depthRef{};
+        depthRef.attachment = 1;
+        depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorRef;
+        subpass.pDepthStencilAttachment = &depthRef;
+
+        // Incoming: wait for any prior sampling of this image before we overwrite it.
+        // Outgoing: make a later pass's sampling wait for our color writes.
+        VkSubpassDependency deps[2]{};
+        deps[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        deps[0].dstSubpass = 0;
+        deps[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        deps[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                               VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        deps[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        deps[1].srcSubpass = 0;
+        deps[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        deps[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        deps[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        const VkAttachmentDescription attachments[] = {color, depth};
+        VkRenderPassCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        info.attachmentCount = 2;
+        info.pAttachments = attachments;
+        info.subpassCount = 1;
+        info.pSubpasses = &subpass;
+        info.dependencyCount = 2;
+        info.pDependencies = deps;
+        ZK_VK(vkCreateRenderPass(device_, &info, nullptr, &out));
+        return true;
+    }
+
+    void setViewportScissor(VkCommandBuffer cmd, VkExtent2D extent) {
+        VkViewport viewport{};
+        viewport.width = static_cast<f32>(extent.width);
+        viewport.height = static_cast<f32>(extent.height);
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+        VkRect2D scissor{};
+        scissor.extent = extent;
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
     }
 
     // Transient command buffer for one-off transfers (blocks until done).
@@ -1254,6 +1511,12 @@ private:
         if (descriptorPool_ != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(device_, descriptorPool_, nullptr);
         }
+        // Render targets own framebuffer/render pass/depth and erase their color
+        // texture from textures_ (freed here), so the loop below handles the rest.
+        for (auto& [id, target] : renderTargets_) {
+            destroyRenderTargetResources(target);
+        }
+        renderTargets_.clear();
         for (auto& [id, texture] : textures_) {
             vkDestroySampler(device_, texture.sampler, nullptr);
             vkDestroyImageView(device_, texture.view, nullptr);
@@ -1343,10 +1606,12 @@ private:
     std::unordered_map<u32, VulkanPipeline> pipelines_;
     std::unordered_map<u32, VulkanTexture> textures_;
     std::unordered_map<u32, VulkanBindGroup> bindGroups_;
+    std::unordered_map<u32, VulkanRenderTarget> renderTargets_;
     u32 nextBufferId_ = 1;
     u32 nextPipelineId_ = 1;
     u32 nextTextureId_ = 1;
     u32 nextBindGroupId_ = 1;
+    u32 nextRenderTargetId_ = 1;
 
     Color clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
     u32 currentFrame_ = 0;
