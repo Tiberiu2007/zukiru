@@ -4,10 +4,10 @@
 a **Vulkan** backend, plus cameras. Game/scene code talks to the backend-agnostic
 RHI, never to Vulkan directly, so a second backend (D3D12/Metal) can drop in later.
 
-This first cut brings up the full Vulkan chain (instance → surface → device →
-swapchain → render pass → present) and **clears the screen each frame**. Command
-recording, resources, pipelines, shaders and the first triangle come with the
-Milestone-4 shader toolchain — they extend the RHI without breaking it. See
+It brings up the full Vulkan chain (instance → surface → device → swapchain →
+render pass → **graphics pipeline** → present), clears the screen and draws the
+built-in **RGB triangle** each frame. A general command/resource/pipeline RHI
+(user-supplied geometry and materials) extends this without breaking it. See
 [ADR 0006](../../../docs/adr/0006-render-architecture.md). Namespace `zukiru::render`.
 
 ## Rendering a frame
@@ -65,6 +65,17 @@ recreation.
 - The X11 surface uses its **own** `Display` connection, closed while the instance
   is still alive — this sidesteps an NVIDIA driver crash where `XCloseDisplay`
   invokes a hook into an already-unloaded ICD.
+
+### Built-in triangle
+
+The graphics pipeline is vertexless (`gl_VertexIndex`-driven) and uses **dynamic
+viewport/scissor**, so it survives swapchain recreation without a rebuild. Its
+shaders live in [`src/vulkan/shaders/`](src/vulkan/shaders) as GLSL and are
+**compiled offline** by `zukiru-shaderc` and embedded as SPIR-V in
+`src/vulkan/triangle_shaders.hpp` — so render depends on **no shader compiler** at
+build or run time (regeneration recipe in the shaders' README). This is the
+milestone's "first triangle"; user-supplied geometry replaces it once the pipeline
+RHI lands.
 
 ## Scope
 
