@@ -80,4 +80,18 @@ enforced by `.clang-format` / `.clang-tidy`: types `PascalCase`, functions/vars
 
 ## License
 
-TBD.
+Zukiru is dual-licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option. This is the same permissive dual-license used across much of the
+Rust/game-engine ecosystem: you may use Zukiru — including in closed-source and
+commercial games — under whichever of the two licenses you prefer. See
+[ADR 0007](docs/adr/0007-license.md) for the rationale.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in Zukiru by you, as defined in the Apache-2.0 license, shall be
+dual-licensed as above, without any additional terms or conditions.

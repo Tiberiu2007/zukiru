@@ -9,6 +9,7 @@ A game engine, currently greenfield (started 2026-07-03 — the repo was empty a
 - **Language / build:** C++20 with CMake (targets-based, one `CMakeLists.txt` per module).
 - **Architecture:** **Hybrid** — a data-oriented ECS core (`ecs` module) with an optional scene-graph / GameObject convenience layer (`scene` module) built on top. `ecs` must never depend on `scene`.
 - **Dependencies:** **vcpkg** (manifest mode, `vcpkg.json`) — chosen 2026-07-03, recorded in `docs/adr/0001-package-manager.md`. Toolchain auto-chainloads when `VCPKG_ROOT` is set; Catch2 is fetched via CMake FetchContent so a clean checkout builds without vcpkg.
+- **License:** **`MIT OR Apache-2.0`** (dual, user's choice) — chosen 2026-07-06, recorded in `docs/adr/0007-license.md`. Files `LICENSE-MIT` + `LICENSE-APACHE` at repo root; contributions are inbound under the same dual license. Copyright holder is "Zukiru contributors". Effectively permanent — don't relicense without all contributors' consent.
 
 ## The one rule that matters most
 The engine is a **set of layered libraries**, not a monolith. Enforced module layering (see [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) §2) means a module may only depend on its own layer or below. Illegal dependencies should be a compile error, not a review comment. `engine/` never depends on the editor, tools, or any specific game.
