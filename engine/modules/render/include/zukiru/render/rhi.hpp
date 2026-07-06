@@ -62,9 +62,30 @@ struct PipelineHandle {
     friend constexpr bool operator==(PipelineHandle, PipelineHandle) = default;
 };
 
+struct TextureHandle {
+    u32 id = 0;
+    [[nodiscard]] constexpr bool valid() const noexcept { return id != 0; }
+    friend constexpr bool operator==(TextureHandle, TextureHandle) = default;
+};
+
+// A concrete set of resources (uniform buffers + textures) a pipeline reads,
+// bound together during recording. Matches a pipeline's `bindings`.
+struct BindGroupHandle {
+    u32 id = 0;
+    [[nodiscard]] constexpr bool valid() const noexcept { return id != 0; }
+    friend constexpr bool operator==(BindGroupHandle, BindGroupHandle) = default;
+};
+
 enum class BufferKind : u8 {
     Vertex,
     Index,
+    Uniform,
+};
+
+// A shader resource slot. `Texture` is a combined sampled-image + sampler.
+enum class BindingType : u8 {
+    UniformBuffer,
+    Texture,
 };
 
 enum class IndexType : u8 {
@@ -107,6 +128,17 @@ struct PipelineDesc {
     std::span<const u32> fragmentSpirv;
     VertexLayout vertexLayout{};
     PrimitiveTopology topology = PrimitiveTopology::TriangleList;
+    // Shader resource slots (descriptor set 0); entry i is binding i. Empty for a
+    // pipeline that reads no uniforms/textures.
+    std::vector<BindingType> bindings;
+};
+
+// One resource in a bind group. Set `buffer` for a UniformBuffer binding and
+// `texture` for a Texture binding.
+struct BindGroupEntry {
+    u32 binding = 0;
+    BufferHandle buffer{};
+    TextureHandle texture{};
 };
 
 // --- Device ---------------------------------------------------------------
@@ -126,9 +158,24 @@ public:
                                                     usize sizeBytes) = 0;
     virtual void destroyBuffer(BufferHandle buffer) = 0;
 
+    // Overwrite a buffer's contents (host-visible; typically a uniform buffer).
+    // Do not call while a frame reading it is still in flight.
+    virtual void updateBuffer(BufferHandle buffer, const void* data, usize sizeBytes) = 0;
+
+    // Create an RGBA8 2D texture from tightly-packed `width*height*4` pixels.
+    [[nodiscard]] virtual TextureHandle createTexture(u32 width, u32 height,
+                                                      const void* rgbaPixels) = 0;
+    virtual void destroyTexture(TextureHandle texture) = 0;
+
     // Build a graphics pipeline. Errors on invalid SPIR-V / pipeline creation.
     [[nodiscard]] virtual Result<PipelineHandle> createPipeline(const PipelineDesc& desc) = 0;
     virtual void destroyPipeline(PipelineHandle pipeline) = 0;
+
+    // Bind concrete resources to a pipeline's `bindings`. Errors if an entry's
+    // type doesn't match, or on descriptor allocation failure.
+    [[nodiscard]] virtual Result<BindGroupHandle> createBindGroup(
+        PipelineHandle pipeline, std::span<const BindGroupEntry> entries) = 0;
+    virtual void destroyBindGroup(BindGroupHandle group) = 0;
 
     // --- Frame -----------------------------------------------------------
 
@@ -142,6 +189,7 @@ public:
     // --- Recording (valid only between beginFrame and endFrame) ----------
 
     virtual void bindPipeline(PipelineHandle pipeline) = 0;
+    virtual void bindBindGroup(BindGroupHandle group) = 0;
     virtual void bindVertexBuffer(BufferHandle buffer) = 0;
     virtual void bindIndexBuffer(BufferHandle buffer, IndexType type) = 0;
     virtual void draw(u32 vertexCount, u32 firstVertex = 0) = 0;

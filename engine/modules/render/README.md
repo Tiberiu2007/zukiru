@@ -5,8 +5,10 @@ a **Vulkan** backend, plus cameras. Game/scene code talks to the backend-agnosti
 RHI, never to Vulkan directly, so a second backend (D3D12/Metal) can drop in later.
 
 It brings up the full Vulkan chain (instance → surface → device → swapchain →
-render pass → present) and exposes **GPU buffers**, **SPIR-V graphics pipelines**,
-and **per-frame command recording** — enough to draw your own geometry. See
+render pass → present) and exposes **GPU buffers** (vertex/index/uniform),
+**textures**, **SPIR-V graphics pipelines**, **bind groups** (uniform + texture
+descriptor sets), and **per-frame command recording** — enough to draw your own
+textured, shader-parameterized geometry. See
 [ADR 0006](../../../docs/adr/0006-render-architecture.md). Namespace `zukiru::render`.
 
 ## Drawing your own geometry
@@ -38,11 +40,35 @@ while (running) {
 ```
 
 `Device` is **backend-agnostic** — no Vulkan types leak into the public headers.
-It exposes: resources (`createBuffer`/`createPipeline` + `destroy*`, indexed by
-opaque `BufferHandle`/`PipelineHandle`); the frame (`beginFrame` clears + opens
-the render pass, `endFrame` submits + presents); recording, valid between the two
-(`bindPipeline`, `bindVertexBuffer`, `bindIndexBuffer`, `draw`, `drawIndexed`);
-plus `setClearColor`, `resize`, `waitIdle`, `backend()`, `deviceName()`.
+It exposes: resources (`createBuffer` (Vertex/Index/Uniform) + `updateBuffer`,
+`createTexture` (RGBA8), `createPipeline`, `createBindGroup`, and `destroy*` —
+opaque `BufferHandle`/`TextureHandle`/`PipelineHandle`/`BindGroupHandle`); the
+frame (`beginFrame` clears + opens the render pass, `endFrame` submits + presents);
+recording between the two (`bindPipeline`, `bindBindGroup`, `bindVertexBuffer`,
+`bindIndexBuffer`, `draw`, `drawIndexed`); plus `setClearColor`, `resize`,
+`waitIdle`, `backend()`, `deviceName()`.
+
+## Uniforms and textures
+
+A pipeline declares its resource slots in `PipelineDesc::bindings` (descriptor
+set 0): `BindingType::UniformBuffer` or `Texture`. A **bind group** supplies the
+concrete resources for those slots and is bound during recording:
+
+```cpp
+desc.bindings = {render::BindingType::UniformBuffer, render::BindingType::Texture};
+auto pipeline = device->createPipeline(desc).value();
+
+auto ubo = device->createBuffer(render::BufferKind::Uniform, &mvp, sizeof(mvp));
+auto tex = device->createTexture(w, h, rgbaPixels);
+render::BindGroupEntry entries[] = {
+    {.binding = 0, .buffer = ubo},
+    {.binding = 1, .texture = tex},
+};
+auto group = device->createBindGroup(pipeline, entries).value();
+
+// per frame: device->bindPipeline(pipeline); device->bindBindGroup(group); ...
+device->updateBuffer(ubo, &mvp, sizeof(mvp));  // e.g. a new camera matrix
+```
 
 Pipelines take **SPIR-V** (`std::span<const u32>`) — produce it offline with
 [`zukiru-shaderc`](../../../tools/shader_compiler) and embed or load it. Viewport/
@@ -69,10 +95,13 @@ the window's native handle (Xlib or Wayland per `platform::Window::nativeBackend
 physical-device selection (graphics+present+swapchain, prefers a discrete GPU),
 logical device, swapchain (format/present-mode/extent), a single-attachment
 render pass (`loadOp=CLEAR`), framebuffers, command buffers, and per-frame sync
-(2 frames in flight). Buffers are host-visible/coherent (map + memcpy); pipelines
-are built from the `PipelineDesc` (SPIR-V modules + vertex layout + topology) with
-dynamic viewport/scissor. Out-of-date/suboptimal swapchains and `resize()` trigger
-recreation; pipelines are unaffected.
+(2 frames in flight). Buffers are host-visible/coherent (map + memcpy); textures
+upload through a staging buffer with image-layout transitions (single-time command
+submits) and get a view + linear sampler. Pipelines are built from the
+`PipelineDesc` (SPIR-V + vertex layout + topology + a descriptor-set-0 layout from
+`bindings`) with dynamic viewport/scissor; bind groups are descriptor sets from a
+shared pool. Out-of-date/suboptimal swapchains and `resize()` trigger recreation;
+pipelines and resources are unaffected.
 
 - **Vulkan is a private dependency**: headers come from a system SDK or, failing
   that, **Vulkan-Headers via FetchContent** (a clean box ships only
@@ -83,10 +112,12 @@ recreation; pipelines are unaffected.
 
 ## Scope
 
-Buffers, SPIR-V pipelines, command recording (draw / draw-indexed), cameras.
-**Deferred** (additive, no API break): staging uploads + a real GPU allocator
-(buffers are host-visible today), textures/samplers, uniform/descriptor sets and
-push constants, depth/MSAA, a render graph and materials, and additional backends
+Buffers (vertex/index/uniform), RGBA8 textures, SPIR-V pipelines with uniform +
+texture bind groups, command recording (draw / draw-indexed), cameras.
+**Deferred** (additive, no API break): staging/DEVICE_LOCAL vertex buffers + a real
+GPU allocator (vertex/uniform buffers are host-visible today), per-frame uniform
+ring buffers (`updateBuffer` must not race an in-flight frame), push constants,
+mipmaps, depth/MSAA, a render graph and materials, and additional backends
 (D3D12/Metal). Wayland surface support compiles but is runtime-validated only on a
 Wayland session (see ADR 0005).
 
@@ -94,16 +125,17 @@ Wayland session (see ADR 0005).
 
 ```bash
 ctest --preset debug -R '^render\.'          # camera + RHI value types (CI-safe)
-zukiru_render_tests "[.gpu]"                 # real GPU: upload + pipeline + draw
+zukiru_render_tests "[.gpu]"                 # real GPU: buffers/textures/pipelines
 ```
 
 Camera math and RHI value types are covered by ordinary unit tests. The hidden
-`[.gpu]` test opens a real window, uploads a vertex buffer, builds a pipeline from
-SPIR-V, and draws user geometry for 20 frames (with a resize) — plus an
-invalid-SPIR-V rejection case. Verified on an NVIDIA RTX 3060, clean under ASan.
-The demo shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are embedded
-as SPIR-V by `zukiru-shaderc` — so the render module itself needs no shader
-compiler at build or run time.
+`[.gpu]` tests open a real window and, on the actual device: draw user geometry
+from a vertex buffer; reject invalid SPIR-V; and draw a **textured, uniform-
+transformed** triangle (uniform `mat4` buffer + a 2×2 checkerboard texture + a
+bind group) — 20 frames with a resize. Verified on an NVIDIA RTX 3060, clean under
+ASan. The demo shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are
+embedded as SPIR-V by `zukiru-shaderc` — so the render module itself needs no
+shader compiler at build or run time.
 
 ## Dependencies
 

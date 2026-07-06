@@ -21,9 +21,26 @@ TEST_CASE("Color compares by value and defaults to opaque black", "[render][rhi]
 TEST_CASE("resource handles default to invalid", "[render][rhi]") {
     REQUIRE_FALSE(BufferHandle{}.valid());
     REQUIRE_FALSE(PipelineHandle{}.valid());
+    REQUIRE_FALSE(TextureHandle{}.valid());
+    REQUIRE_FALSE(BindGroupHandle{}.valid());
     REQUIRE(BufferHandle{7}.valid());
     REQUIRE(BufferHandle{7} == BufferHandle{7});
     REQUIRE_FALSE(BufferHandle{7} == BufferHandle{8});
+}
+
+TEST_CASE("a pipeline declares resource bindings; a bind group fills them", "[render][rhi]") {
+    PipelineDesc desc;
+    desc.bindings = {BindingType::UniformBuffer, BindingType::Texture};
+    REQUIRE(desc.bindings.size() == 2);
+    REQUIRE(desc.bindings[0] == BindingType::UniformBuffer);
+
+    // A uniform-buffer entry carries a buffer; a texture entry carries a texture.
+    const BindGroupEntry uniform{.binding = 0, .buffer = BufferHandle{3}, .texture = {}};
+    const BindGroupEntry sampled{.binding = 1, .buffer = {}, .texture = TextureHandle{4}};
+    REQUIRE(uniform.buffer.valid());
+    REQUIRE_FALSE(uniform.texture.valid());
+    REQUIRE(sampled.texture.valid());
+    REQUIRE_FALSE(sampled.buffer.valid());
 }
 
 TEST_CASE("a vertex layout describes interleaved attributes", "[render][rhi]") {

@@ -62,12 +62,31 @@ constexpr u32 kFramesInFlight = 2;
 struct VulkanBuffer {
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkDeviceSize size = 0;
 };
 
 struct VulkanPipeline {
     VkPipeline pipeline = VK_NULL_HANDLE;
     VkPipelineLayout layout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout setLayout = VK_NULL_HANDLE;  // VK_NULL_HANDLE if no bindings
 };
+
+struct VulkanTexture {
+    VkImage image = VK_NULL_HANDLE;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkImageView view = VK_NULL_HANDLE;
+    VkSampler sampler = VK_NULL_HANDLE;
+};
+
+struct VulkanBindGroup {
+    VkDescriptorSet set = VK_NULL_HANDLE;
+    VkPipelineLayout layout = VK_NULL_HANDLE;  // the pipeline layout it was built for
+};
+
+[[nodiscard]] VkDescriptorType toVkDescriptorType(BindingType type) {
+    return type == BindingType::UniformBuffer ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                              : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+}
 
 class VulkanDevice final : public Device {
 public:
@@ -92,6 +111,7 @@ public:
         if (!createFramebuffers()) return false;
         if (!createCommandResources()) return false;
         if (!createSyncObjects()) return false;
+        if (!createDescriptorPool()) return false;
         return true;
     }
 
@@ -100,30 +120,21 @@ public:
     BufferHandle createBuffer(BufferKind kind, const void* data, usize sizeBytes) override {
         if (sizeBytes == 0) return {};
 
-        VkBufferCreateInfo info{};
-        info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        info.size = sizeBytes;
-        info.usage = kind == BufferKind::Vertex ? VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-                                                : VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VkBufferUsageFlags usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        switch (kind) {
+            case BufferKind::Vertex: usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; break;
+            case BufferKind::Index: usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT; break;
+            case BufferKind::Uniform: usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT; break;
+        }
 
         VulkanBuffer resource;
-        if (vkCreateBuffer(device_, &info, nullptr, &resource.buffer) != VK_SUCCESS) return {};
-
-        VkMemoryRequirements requirements{};
-        vkGetBufferMemoryRequirements(device_, resource.buffer, &requirements);
-
-        VkMemoryAllocateInfo alloc{};
-        alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        alloc.allocationSize = requirements.size;
-        alloc.memoryTypeIndex =
-            findMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(device_, &alloc, nullptr, &resource.memory) != VK_SUCCESS) {
-            vkDestroyBuffer(device_, resource.buffer, nullptr);
+        if (!allocateBuffer(sizeBytes, usage,
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            resource.buffer, resource.memory)) {
             return {};
         }
-        vkBindBufferMemory(device_, resource.buffer, resource.memory, 0);
+        resource.size = sizeBytes;
 
         if (data != nullptr) {
             void* mapped = nullptr;
@@ -145,6 +156,105 @@ public:
         buffers_.erase(it);
     }
 
+    void updateBuffer(BufferHandle handle, const void* data, usize sizeBytes) override {
+        const auto it = buffers_.find(handle.id);
+        if (it == buffers_.end() || data == nullptr) return;
+        void* mapped = nullptr;
+        vkMapMemory(device_, it->second.memory, 0, sizeBytes, 0, &mapped);
+        std::memcpy(mapped, data, sizeBytes);
+        vkUnmapMemory(device_, it->second.memory);
+    }
+
+    TextureHandle createTexture(u32 width, u32 height, const void* rgbaPixels) override {
+        if (width == 0 || height == 0 || rgbaPixels == nullptr) return {};
+        const VkDeviceSize imageSize = static_cast<VkDeviceSize>(width) * height * 4;
+
+        VkBuffer staging = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+        if (!allocateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            staging, stagingMemory)) {
+            return {};
+        }
+        void* mapped = nullptr;
+        vkMapMemory(device_, stagingMemory, 0, imageSize, 0, &mapped);
+        std::memcpy(mapped, rgbaPixels, imageSize);
+        vkUnmapMemory(device_, stagingMemory);
+
+        VulkanTexture texture;
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent = {width, height, 1};
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateImage(device_, &imageInfo, nullptr, &texture.image) != VK_SUCCESS) {
+            vkDestroyBuffer(device_, staging, nullptr);
+            vkFreeMemory(device_, stagingMemory, nullptr);
+            return {};
+        }
+
+        VkMemoryRequirements requirements{};
+        vkGetImageMemoryRequirements(device_, texture.image, &requirements);
+        VkMemoryAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc.allocationSize = requirements.size;
+        alloc.memoryTypeIndex =
+            findMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        vkAllocateMemory(device_, &alloc, nullptr, &texture.memory);
+        vkBindImageMemory(device_, texture.image, texture.memory, 0);
+
+        transitionImageLayout(texture.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        copyBufferToImage(staging, texture.image, width, height);
+        transitionImageLayout(texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        vkDestroyBuffer(device_, staging, nullptr);
+        vkFreeMemory(device_, stagingMemory, nullptr);
+
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = texture.image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.layerCount = 1;
+        vkCreateImageView(device_, &viewInfo, nullptr, &texture.view);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+        vkCreateSampler(device_, &samplerInfo, nullptr, &texture.sampler);
+
+        const u32 id = nextTextureId_++;
+        textures_[id] = texture;
+        return TextureHandle{id};
+    }
+
+    void destroyTexture(TextureHandle handle) override {
+        const auto it = textures_.find(handle.id);
+        if (it == textures_.end()) return;
+        vkDestroySampler(device_, it->second.sampler, nullptr);
+        vkDestroyImageView(device_, it->second.view, nullptr);
+        vkDestroyImage(device_, it->second.image, nullptr);
+        vkFreeMemory(device_, it->second.memory, nullptr);
+        textures_.erase(it);
+    }
+
     Result<PipelineHandle> createPipeline(const PipelineDesc& desc) override {
         VulkanPipeline pipeline;
         if (!buildPipeline(desc, pipeline)) {
@@ -160,7 +270,82 @@ public:
         if (it == pipelines_.end()) return;
         vkDestroyPipeline(device_, it->second.pipeline, nullptr);
         vkDestroyPipelineLayout(device_, it->second.layout, nullptr);
+        if (it->second.setLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(device_, it->second.setLayout, nullptr);
+        }
         pipelines_.erase(it);
+    }
+
+    Result<BindGroupHandle> createBindGroup(PipelineHandle pipeline,
+                                            std::span<const BindGroupEntry> entries) override {
+        const auto pit = pipelines_.find(pipeline.id);
+        if (pit == pipelines_.end()) return Err(Error{"createBindGroup: unknown pipeline"});
+        if (pit->second.setLayout == VK_NULL_HANDLE) {
+            return Err(Error{"createBindGroup: pipeline declares no bindings"});
+        }
+
+        VkDescriptorSetAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc.descriptorPool = descriptorPool_;
+        alloc.descriptorSetCount = 1;
+        alloc.pSetLayouts = &pit->second.setLayout;
+        VkDescriptorSet set = VK_NULL_HANDLE;
+        if (vkAllocateDescriptorSets(device_, &alloc, &set) != VK_SUCCESS) {
+            return Err(Error{"createBindGroup: descriptor pool exhausted"});
+        }
+
+        // Stable backing storage for the write infos (reserved so no reallocation
+        // invalidates the pointers we hand to Vulkan).
+        std::vector<VkDescriptorBufferInfo> bufferInfos;
+        std::vector<VkDescriptorImageInfo> imageInfos;
+        bufferInfos.reserve(entries.size());
+        imageInfos.reserve(entries.size());
+        std::vector<VkWriteDescriptorSet> writes;
+        writes.reserve(entries.size());
+
+        for (const BindGroupEntry& entry : entries) {
+            VkWriteDescriptorSet write{};
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = set;
+            write.dstBinding = entry.binding;
+            write.descriptorCount = 1;
+
+            if (entry.buffer.valid()) {
+                const auto bit = buffers_.find(entry.buffer.id);
+                if (bit == buffers_.end()) continue;
+                VkDescriptorBufferInfo info{};
+                info.buffer = bit->second.buffer;
+                info.range = VK_WHOLE_SIZE;
+                bufferInfos.push_back(info);
+                write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                write.pBufferInfo = &bufferInfos.back();
+            } else if (entry.texture.valid()) {
+                const auto tit = textures_.find(entry.texture.id);
+                if (tit == textures_.end()) continue;
+                VkDescriptorImageInfo info{};
+                info.sampler = tit->second.sampler;
+                info.imageView = tit->second.view;
+                info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfos.push_back(info);
+                write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                write.pImageInfo = &imageInfos.back();
+            } else {
+                continue;
+            }
+            writes.push_back(write);
+        }
+        vkUpdateDescriptorSets(device_, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+
+        const u32 id = nextBindGroupId_++;
+        bindGroups_[id] = VulkanBindGroup{set, pit->second.layout};
+        return Ok(BindGroupHandle{id});
+    }
+
+    void destroyBindGroup(BindGroupHandle handle) override {
+        const auto it = bindGroups_.find(handle.id);
+        if (it == bindGroups_.end()) return;
+        vkFreeDescriptorSets(device_, descriptorPool_, 1, &it->second.set);
+        bindGroups_.erase(it);
     }
 
     // --- Frame -----------------------------------------------------------
@@ -250,6 +435,13 @@ public:
         if (it == pipelines_.end()) return;
         vkCmdBindPipeline(commandBuffers_[currentFrame_], VK_PIPELINE_BIND_POINT_GRAPHICS,
                           it->second.pipeline);
+    }
+
+    void bindBindGroup(BindGroupHandle handle) override {
+        const auto it = bindGroups_.find(handle.id);
+        if (it == bindGroups_.end()) return;
+        vkCmdBindDescriptorSets(commandBuffers_[currentFrame_], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                it->second.layout, 0, 1, &it->second.set, 0, nullptr);
     }
 
     void bindVertexBuffer(BufferHandle handle) override {
@@ -481,6 +673,114 @@ private:
         return 0;
     }
 
+    bool allocateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+                        VkBuffer& outBuffer, VkDeviceMemory& outMemory) {
+        VkBufferCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        info.size = size;
+        info.usage = usage;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(device_, &info, nullptr, &outBuffer) != VK_SUCCESS) return false;
+
+        VkMemoryRequirements requirements{};
+        vkGetBufferMemoryRequirements(device_, outBuffer, &requirements);
+        VkMemoryAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc.allocationSize = requirements.size;
+        alloc.memoryTypeIndex = findMemoryType(requirements.memoryTypeBits, properties);
+        if (vkAllocateMemory(device_, &alloc, nullptr, &outMemory) != VK_SUCCESS) {
+            vkDestroyBuffer(device_, outBuffer, nullptr);
+            outBuffer = VK_NULL_HANDLE;
+            return false;
+        }
+        vkBindBufferMemory(device_, outBuffer, outMemory, 0);
+        return true;
+    }
+
+    // Transient command buffer for one-off transfers (blocks until done).
+    [[nodiscard]] VkCommandBuffer beginSingleTime() {
+        VkCommandBufferAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        alloc.commandPool = commandPool_;
+        alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        alloc.commandBufferCount = 1;
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        vkAllocateCommandBuffers(device_, &alloc, &cmd);
+        VkCommandBufferBeginInfo begin{};
+        begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd, &begin);
+        return cmd;
+    }
+
+    void endSingleTime(VkCommandBuffer cmd) {
+        vkEndCommandBuffer(cmd);
+        VkSubmitInfo submit{};
+        submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit.commandBufferCount = 1;
+        submit.pCommandBuffers = &cmd;
+        vkQueueSubmit(graphicsQueue_, 1, &submit, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue_);
+        vkFreeCommandBuffers(device_, commandPool_, 1, &cmd);
+    }
+
+    void transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
+        VkCommandBuffer cmd = beginSingleTime();
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+            newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        endSingleTime(cmd);
+    }
+
+    void copyBufferToImage(VkBuffer buffer, VkImage image, u32 width, u32 height) {
+        VkCommandBuffer cmd = beginSingleTime();
+        VkBufferImageCopy region{};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent = {width, height, 1};
+        vkCmdCopyBufferToImage(cmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        endSingleTime(cmd);
+    }
+
+    bool createDescriptorPool() {
+        VkDescriptorPoolSize sizes[2]{};
+        sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        sizes[0].descriptorCount = 64;
+        sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        sizes[1].descriptorCount = 64;
+        VkDescriptorPoolCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        info.maxSets = 64;
+        info.poolSizeCount = 2;
+        info.pPoolSizes = sizes;
+        ZK_VK(vkCreateDescriptorPool(device_, &info, nullptr, &descriptorPool_));
+        return true;
+    }
+
     // --- Swapchain -------------------------------------------------------
     bool createSwapchain() {
         VkSurfaceCapabilitiesKHR caps{};
@@ -698,9 +998,39 @@ private:
         dynamicState.dynamicStateCount = 2;
         dynamicState.pDynamicStates = dynamicStates;
 
+        // Descriptor set layout (set 0) from the declared resource bindings.
+        if (!desc.bindings.empty()) {
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            layoutBindings.reserve(desc.bindings.size());
+            for (usize i = 0; i < desc.bindings.size(); ++i) {
+                VkDescriptorSetLayoutBinding b{};
+                b.binding = static_cast<u32>(i);
+                b.descriptorType = toVkDescriptorType(desc.bindings[i]);
+                b.descriptorCount = 1;
+                b.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+                layoutBindings.push_back(b);
+            }
+            VkDescriptorSetLayoutCreateInfo setInfo{};
+            setInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            setInfo.bindingCount = static_cast<u32>(layoutBindings.size());
+            setInfo.pBindings = layoutBindings.data();
+            if (vkCreateDescriptorSetLayout(device_, &setInfo, nullptr, &out.setLayout) !=
+                VK_SUCCESS) {
+                vkDestroyShaderModule(device_, vert, nullptr);
+                vkDestroyShaderModule(device_, frag, nullptr);
+                error_ = "render: vkCreateDescriptorSetLayout failed";
+                return false;
+            }
+        }
+
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layoutInfo.setLayoutCount = out.setLayout != VK_NULL_HANDLE ? 1u : 0u;
+        layoutInfo.pSetLayouts = out.setLayout != VK_NULL_HANDLE ? &out.setLayout : nullptr;
         if (vkCreatePipelineLayout(device_, &layoutInfo, nullptr, &out.layout) != VK_SUCCESS) {
+            if (out.setLayout != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(device_, out.setLayout, nullptr);
+            }
             vkDestroyShaderModule(device_, vert, nullptr);
             vkDestroyShaderModule(device_, frag, nullptr);
             error_ = "render: vkCreatePipelineLayout failed";
@@ -728,7 +1058,11 @@ private:
         vkDestroyShaderModule(device_, frag, nullptr);
         if (result != VK_SUCCESS) {
             vkDestroyPipelineLayout(device_, out.layout, nullptr);
+            if (out.setLayout != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(device_, out.setLayout, nullptr);
+            }
             out.layout = VK_NULL_HANDLE;
+            out.setLayout = VK_NULL_HANDLE;
             error_ = "render: vkCreateGraphicsPipelines failed";
             return false;
         }
@@ -814,6 +1148,18 @@ private:
     void teardown() {
         if (device_ != VK_NULL_HANDLE) vkDeviceWaitIdle(device_);
 
+        // Bind groups' sets are freed with the pool below; just drop the map.
+        bindGroups_.clear();
+        if (descriptorPool_ != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(device_, descriptorPool_, nullptr);
+        }
+        for (auto& [id, texture] : textures_) {
+            vkDestroySampler(device_, texture.sampler, nullptr);
+            vkDestroyImageView(device_, texture.view, nullptr);
+            vkDestroyImage(device_, texture.image, nullptr);
+            vkFreeMemory(device_, texture.memory, nullptr);
+        }
+        textures_.clear();
         for (auto& [id, buffer] : buffers_) {
             vkDestroyBuffer(device_, buffer.buffer, nullptr);
             vkFreeMemory(device_, buffer.memory, nullptr);
@@ -822,6 +1168,9 @@ private:
         for (auto& [id, pipeline] : pipelines_) {
             vkDestroyPipeline(device_, pipeline.pipeline, nullptr);
             vkDestroyPipelineLayout(device_, pipeline.layout, nullptr);
+            if (pipeline.setLayout != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(device_, pipeline.setLayout, nullptr);
+            }
         }
         pipelines_.clear();
 
@@ -883,10 +1232,15 @@ private:
     std::vector<VkFence> imagesInFlight_;
 
     // Resources.
+    VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
     std::unordered_map<u32, VulkanBuffer> buffers_;
     std::unordered_map<u32, VulkanPipeline> pipelines_;
+    std::unordered_map<u32, VulkanTexture> textures_;
+    std::unordered_map<u32, VulkanBindGroup> bindGroups_;
     u32 nextBufferId_ = 1;
     u32 nextPipelineId_ = 1;
+    u32 nextTextureId_ = 1;
+    u32 nextBindGroupId_ = 1;
 
     Color clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
     u32 currentFrame_ = 0;
