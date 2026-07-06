@@ -142,6 +142,10 @@ function(zukiru_require_glslang)
   set(ENABLE_OPT OFF CACHE BOOL "" FORCE)          # skip SPIRV-Tools optimizer dep
   set(ENABLE_SPVREMAPPER OFF CACHE BOOL "" FORCE)
   set(BUILD_EXTERNAL OFF CACHE BOOL "" FORCE)
+  # Emit typeinfo for glslang's polymorphic classes (TShader/TProgram). Without
+  # it, our TU's references to their typeinfo go undefined at link time under some
+  # optimization/sanitizer settings.
+  set(ENABLE_RTTI ON CACHE BOOL "" FORCE)
 
   FetchContent_Declare(glslang
     GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git

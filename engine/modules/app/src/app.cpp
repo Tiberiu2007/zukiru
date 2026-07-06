@@ -54,6 +54,7 @@ void App::run(Application& game) {
         game.onUpdate(*this, deltaTime_);
 
         if (device_->beginFrame()) {
+            game.onRender(*this);  // record draws into the open render pass
             device_->endFrame();
         } else {
             // Swapchain out of date — resize to the current window and retry next frame.

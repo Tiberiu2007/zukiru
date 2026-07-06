@@ -21,6 +21,7 @@ struct FrameLimitGame : Application {
     bool started = false;
     bool shutdown = false;
     u64 updates = 0;
+    u64 renders = 0;
 
     explicit FrameLimitGame(u64 frames) : limit(frames) {}
 
@@ -32,6 +33,7 @@ struct FrameLimitGame : Application {
         ++updates;
         if (app.frameCount() >= limit) app.requestQuit();
     }
+    void onRender(App& /*app*/) override { ++renders; }
     void onShutdown(App& /*app*/) override { shutdown = true; }
 };
 
@@ -53,4 +55,5 @@ TEST_CASE("App runs the main loop and dispatches lifecycle hooks", "[.app]") {
     REQUIRE(game.shutdown);
     REQUIRE(app->frameCount() >= 10);
     REQUIRE(game.updates >= 10);
+    REQUIRE(game.renders >= 10);  // onRender fired inside the render pass
 }

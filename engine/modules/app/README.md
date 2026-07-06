@@ -23,6 +23,11 @@ struct MyGame : app::Application {
     void onUpdate(app::App& a, f32 dt) override {
         if (a.input().keyPressed(input::Key::Escape)) a.requestQuit();
     }
+    void onRender(app::App& a) override {
+        a.device().bindPipeline(pipeline);
+        a.device().bindVertexBuffer(mesh);
+        a.device().draw(3);
+    }
 };
 
 int main() {
@@ -45,7 +50,8 @@ device (surface from the window, clear color from the config) — and returns an
    `InputState` (via the input↔platform bridge),
 3. dispatches `onEvent` per event (handling `WindowResize` → swapchain resize),
 4. calls `onUpdate(app, dt)`,
-5. clears and presents the frame (recreating the swapchain if it went stale).
+5. clears the frame, calls `onRender(app)` (record draws via `app.device()` inside
+   the render pass), then presents (recreating the swapchain if it went stale).
 
 The loop runs until the window closes or `requestQuit()` is called; then the GPU
 is drained and `onShutdown` fires. Teardown (device before window) is automatic.

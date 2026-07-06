@@ -41,6 +41,11 @@ public:
         (void)event;
     }
 
+    // Once per frame, inside the render pass (between beginFrame and endFrame) —
+    // record draw commands here via app.device(). Skipped on frames where the
+    // swapchain had to be recreated.
+    virtual void onRender(App& app) { (void)app; }
+
     // Once, after the loop exits and the GPU is idle.
     virtual void onShutdown(App& app) { (void)app; }
 };
