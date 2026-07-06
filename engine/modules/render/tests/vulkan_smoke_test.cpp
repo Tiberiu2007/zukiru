@@ -3,7 +3,9 @@
 #include <zukiru/math/math.hpp>
 #include <zukiru/platform/window.hpp>
 #include <zukiru/render/camera.hpp>
+#include <zukiru/render/material.hpp>
 #include <zukiru/render/primitives.hpp>
+#include <zukiru/render/render_graph.hpp>
 
 #include "cube_shaders.hpp"
 #include "mesh_shaders.hpp"
@@ -303,4 +305,96 @@ TEST_CASE("Vulkan device draws a depth-tested rotating textured cube", "[.gpu]")
     device->destroyBuffer(ibo);
     device->destroyBuffer(vbo);
     SUCCEED("drew a depth-tested rotating textured cube for 30 frames");
+}
+
+// The cube again, but driven by a Material (which owns the uniform buffer + bind
+// group) recorded inside a RenderGraph pass — exercises both new layers end to end.
+TEST_CASE("Vulkan device draws a material through a render graph", "[.gpu]") {
+    Result<std::unique_ptr<platform::Window>> windowResult =
+        platform::createWindow({.title = "Zukiru material test", .width = 800, .height = 600});
+    REQUIRE(windowResult.isOk());
+    std::unique_ptr<platform::Window>& window = windowResult.value();
+
+    Result<std::unique_ptr<render::Device>> deviceResult = render::createDevice(*window);
+    if (deviceResult.isErr()) {
+        FAIL(deviceResult.error().message);
+    }
+    std::unique_ptr<render::Device>& device = deviceResult.value();
+    INFO("GPU: " << device->deviceName());
+
+    const render::MeshData cube = render::cubeMesh();
+    const render::BufferHandle vbo = device->createBuffer(
+        render::BufferKind::Vertex, cube.vertices.data(), cube.vertexBytes());
+    const render::BufferHandle ibo =
+        device->createBuffer(render::BufferKind::Index, cube.indices.data(), cube.indexBytes());
+    const render::TextureHandle texture = device->createTexture(2, 2, kCheckerPixels);
+    REQUIRE(vbo.valid());
+    REQUIRE(ibo.valid());
+    REQUIRE(texture.valid());
+
+    // A material matching the cube shaders: uniform block { mat4 mvp; mat4 model; }
+    // at binding 0, sampler at binding 1.
+    render::MaterialLayout layout;
+    layout.addMat4("mvp").addMat4("model").addTexture("tex");
+    REQUIRE(layout.uniformSize() == 128);
+
+    render::MaterialTemplateDesc templateDesc;
+    templateDesc.layout = layout;
+    templateDesc.vertexSpirv = render::kCubeVertSpirv;
+    templateDesc.fragmentSpirv = render::kCubeFragSpirv;
+    templateDesc.vertexLayout.stride = sizeof(render::MeshVertex);
+    templateDesc.vertexLayout.attributes = {
+        {.location = 0, .format = render::VertexFormat::Float32x3, .offset = 0},
+        {.location = 1, .format = render::VertexFormat::Float32x3, .offset = sizeof(f32) * 3},
+        {.location = 2, .format = render::VertexFormat::Float32x2, .offset = sizeof(f32) * 6},
+    };
+    Result<std::unique_ptr<render::MaterialTemplate>> materialTemplate =
+        render::MaterialTemplate::create(*device, templateDesc);
+    if (materialTemplate.isErr()) {
+        FAIL(materialTemplate.error().message);
+    }
+    std::unique_ptr<render::Material> material = materialTemplate.value()->instantiate();
+    material->setTexture("tex", texture);
+
+    render::Camera camera;
+    const platform::WindowExtent extent = window->extent();
+    const f32 aspect = static_cast<f32>(extent.width) / static_cast<f32>(extent.height);
+    camera.setPerspective(math::radians(60.0f), aspect, 0.1f, 100.0f);
+    camera.lookAt({2.5f, 2.0f, 3.0f}, {0.0f, 0.0f, 0.0f}, math::Vec3::unitY());
+
+    // One graph, reused each frame: a single pass that draws the material.
+    render::RenderGraph graph;
+    const render::RgResource backbuffer = graph.importResource("backbuffer");
+    graph.addPass("cube").writes(backbuffer).setExecute([&](render::PassContext& ctx) {
+        material->bind(ctx.device);
+        ctx.device.bindVertexBuffer(vbo);
+        ctx.device.bindIndexBuffer(ibo, render::IndexType::U16);
+        ctx.device.drawIndexed(static_cast<u32>(cube.indices.size()));
+    });
+    Result<render::CompiledGraph> compiled = graph.compile();
+    REQUIRE(compiled.isOk());
+
+    device->setClearColor({0.05f, 0.06f, 0.1f, 1.0f});
+    for (int frame = 0; frame < 30; ++frame) {
+        window->pollEvents();
+
+        const f32 angle = static_cast<f32>(frame) * 0.1f;
+        const math::Mat4 model = math::toMat4(math::Quat::fromEuler(angle * 0.5f, angle, 0.0f));
+        material->setMat4("mvp", camera.viewProjection() * model).setMat4("model", model);
+
+        if (!device->beginFrame()) {
+            device->resize(window->extent().width, window->extent().height);
+            continue;
+        }
+        graph.execute(*device, compiled.value());
+        device->endFrame();
+    }
+
+    device->waitIdle();
+    material.reset();            // frees uniform buffer + bind group
+    materialTemplate.value().reset();  // frees the pipeline
+    device->destroyTexture(texture);
+    device->destroyBuffer(ibo);
+    device->destroyBuffer(vbo);
+    SUCCEED("drew a material through a render graph for 30 frames");
 }

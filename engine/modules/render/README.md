@@ -9,8 +9,10 @@ depth buffer → render pass → present) and exposes **GPU buffers**
 (vertex/index/uniform), **textures**, **SPIR-V graphics pipelines**, **bind
 groups** (uniform + texture descriptor sets), **depth testing**, and **per-frame
 command recording** — enough to draw your own textured, depth-tested 3D geometry.
-It also ships **cameras** and **primitive mesh builders**. See
-[ADR 0006](../../../docs/adr/0006-render-architecture.md). Namespace `zukiru::render`.
+On top of the RHI it adds **materials** (a pipeline + named parameters) and a
+**render graph** (a frame organizer), and it ships **cameras** and **primitive
+mesh builders**. See [ADR 0006](../../../docs/adr/0006-render-architecture.md) and
+[ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md). Namespace `zukiru::render`.
 
 ## Drawing your own geometry
 
@@ -99,6 +101,62 @@ auto ibo = device->createBuffer(BufferKind::Index, cube.indices.data(), cube.ind
 // per frame: bindVertexBuffer(vbo); bindIndexBuffer(ibo, IndexType::U16); drawIndexed(36);
 ```
 
+## Materials
+
+A **material** bundles a pipeline with its shader parameters so callers stop
+hand-packing uniform buffers and building descriptor sets. It's a small stack on
+the RHI (ADR 0008), split so the packing logic is GPU-free and testable:
+
+- `MaterialLayout` — the schema: named **std140** uniform members
+  (`ParamType::Float/Vec2/Vec3/Vec4/Mat4`) + named texture slots. Computes each
+  member's byte offset, the block size, and the RHI `bindings()` a matching shader
+  declares (binding 0 = the uniform block, then one texture per slot).
+- `MaterialParams` — a CPU byte block written through named setters.
+- `MaterialTemplate` — owns the pipeline for a layout (shared across instances).
+- `Material` — a template instance owning a uniform buffer + textures + bind group.
+
+```cpp
+MaterialLayout layout;
+layout.addMat4("mvp").addMat4("model").addTexture("tex");   // matches cube.{vert,frag}
+
+auto tmpl = MaterialTemplate::create(device, {.layout = layout,
+    .vertexSpirv = vs, .fragmentSpirv = fs, .vertexLayout = vl}).value();
+auto material = tmpl->instantiate();
+material->setTexture("tex", albedo);
+
+// per frame, inside a render pass:
+material->setMat4("mvp", camera.viewProjection() * model).setMat4("model", model);
+material->bind(device);   // uploads dirty uniforms, (re)builds the bind group, binds
+device.bindVertexBuffer(vbo); device.drawIndexed(count);
+```
+
+## Render graph
+
+A **render graph** organizes a frame into passes with explicit resource
+dependencies. `compile()` orders passes so producers run before consumers, rejects
+dependency cycles, and **culls passes whose results nothing consumes**; `execute()`
+runs the live passes in order.
+
+```cpp
+RenderGraph graph;
+const RgResource shadow      = graph.createResource("shadowMap");
+const RgResource backbuffer  = graph.importResource("backbuffer");  // external
+graph.addPass("shadow").writes(shadow).setExecute([&](PassContext& c) { /* record */ });
+graph.addPass("opaque").reads(shadow).writes(backbuffer).setExecute([&](PassContext& c) {
+    material->bind(c.device); c.device.drawIndexed(count);
+});
+
+if (auto compiled = graph.compile(); compiled) {
+    if (device.beginFrame()) { graph.execute(device, compiled.value()); device.endFrame(); }
+}
+```
+
+Passes writing an **imported** resource are always live (observable side effects);
+everything else survives only if it feeds one. Today every pass records into the
+current framebuffer — physical allocation of transient render targets and automatic
+barriers are **deferred** until the RHI gains offscreen targets (ADR 0008), and slot
+in without changing this API.
+
 ## Cameras
 
 Pure `math`, backend-independent, header-only:
@@ -141,31 +199,35 @@ attachment included); pipelines and resources are unaffected.
 
 Buffers (vertex/index/uniform), RGBA8 textures, SPIR-V pipelines with uniform +
 texture bind groups, depth testing, command recording (draw / draw-indexed),
-cameras, primitive meshes (`cubeMesh`).
+materials (pipeline + std140 params + textures), a render graph (pass scheduling +
+culling), cameras, primitive meshes (`cubeMesh`).
 **Deferred** (additive, no API break): staging/DEVICE_LOCAL vertex buffers + a real
 GPU allocator (vertex/uniform buffers are host-visible today), per-frame uniform
 ring buffers (`updateBuffer` must not race an in-flight frame), push constants,
-mipmaps, MSAA, a render graph and materials, and additional backends
-(D3D12/Metal). Wayland surface support compiles but is runtime-validated only on a
-Wayland session (see ADR 0005).
+mipmaps, MSAA, **offscreen render targets** (and with them the render graph's
+physical transient-resource allocation + automatic barriers), and additional
+backends (D3D12/Metal). Wayland surface support compiles but is runtime-validated
+only on a Wayland session (see ADR 0005).
 
 ## Tests
 
 ```bash
-ctest --preset debug -R '^render\.'          # camera + RHI + primitives (CI-safe)
-zukiru_render_tests "[.gpu]"                 # real GPU: buffers/textures/pipelines/depth
+ctest --preset debug -R '^render\.'          # camera/RHI/primitives/material/graph (CI-safe)
+zukiru_render_tests "[.gpu]"                 # real GPU: pipelines/depth/materials/graph
 ```
 
-Camera math, RHI value types, and `cubeMesh` geometry are covered by ordinary unit
-tests. The hidden `[.gpu]` tests open a real window and, on the actual device: draw
-user geometry from a vertex buffer; reject invalid SPIR-V; draw a **textured,
-uniform-transformed** triangle (uniform `mat4` + a 2×2 checkerboard texture + a bind
-group); and draw a **depth-tested rotating textured cube** (indexed `cubeMesh`, a
-perspective camera whose mvp is re-uploaded each frame, near faces occluding far
-ones). Verified on an NVIDIA RTX 3060, clean under ASan. The demo shaders live in
-[`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V by
-`zukiru-shaderc` — so the render module itself needs no shader compiler at build or
-run time.
+Camera math, RHI value types, `cubeMesh` geometry, **material std140 packing**, and
+**render-graph scheduling** (dependency ordering, cycle rejection, dead-pass culling,
+execute dispatch via a stub device) are covered by ordinary unit tests. The hidden
+`[.gpu]` tests open a real window and, on the actual device: draw user geometry from
+a vertex buffer; reject invalid SPIR-V; draw a **textured, uniform-transformed**
+triangle; draw a **depth-tested rotating textured cube** (indexed `cubeMesh`,
+perspective camera, near faces occluding far); and draw a **material through a render
+graph** (the cube again, its uniforms/bind group owned by a `Material` recorded
+inside a graph pass). Verified on an NVIDIA RTX 3060, clean under ASan. The demo
+shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V
+by `zukiru-shaderc` — so the render module itself needs no shader compiler at build
+or run time.
 
 ## Dependencies
 
