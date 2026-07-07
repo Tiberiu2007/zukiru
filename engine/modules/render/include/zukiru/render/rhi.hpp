@@ -148,6 +148,10 @@ struct PipelineDesc {
     // on by default — the right choice for opaque 3D geometry.
     bool depthTest = true;
     bool depthWrite = true;
+    // Size in bytes of the push-constant block (a `layout(push_constant)` uniform
+    // visible to both stages). 0 for none; keep it small (a mat4 is 64) — the spec
+    // guarantees only 128 bytes. Set per-draw with `pushConstants`.
+    u32 pushConstantSize = 0;
 };
 
 // One resource in a bind group. Set `buffer` for a UniformBuffer binding and
@@ -185,7 +189,10 @@ public:
     virtual void destroyBuffer(BufferHandle buffer) = 0;
 
     // Overwrite a buffer's contents (host-visible; typically a uniform buffer).
-    // Do not call while a frame reading it is still in flight.
+    // Uniform buffers are ring-buffered per frame-in-flight, so this is safe to
+    // call every frame even while earlier frames are still reading — it writes only
+    // the copy the *current* frame will read. It updates just that copy, so update
+    // every frame you draw (values set at creation persist across all copies).
     virtual void updateBuffer(BufferHandle buffer, const void* data, usize sizeBytes) = 0;
 
     // Create an RGBA8 2D texture from tightly-packed `width*height*4` pixels.
@@ -240,6 +247,10 @@ public:
     virtual void bindBindGroup(BindGroupHandle group) = 0;
     virtual void bindVertexBuffer(BufferHandle buffer) = 0;
     virtual void bindIndexBuffer(BufferHandle buffer, IndexType type) = 0;
+    // Push `sizeBytes` of per-draw constants (e.g. a model matrix) to the currently
+    // bound pipeline. Cheap and race-free — recorded straight into the command
+    // buffer. `sizeBytes` must not exceed the bound pipeline's `pushConstantSize`.
+    virtual void pushConstants(const void* data, u32 sizeBytes) = 0;
     virtual void draw(u32 vertexCount, u32 firstVertex = 0) = 0;
     virtual void drawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) = 0;
 

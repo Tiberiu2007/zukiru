@@ -5,16 +5,18 @@ a **Vulkan** backend, plus cameras. Game/scene code talks to the backend-agnosti
 RHI, never to Vulkan directly, so a second backend (D3D12/Metal) can drop in later.
 
 It brings up the full Vulkan chain (instance → surface → device → swapchain →
-depth buffer → render pass → present) and exposes **GPU buffers**
-(vertex/index/uniform), **textures**, **SPIR-V graphics pipelines**, **bind
-groups** (uniform + texture descriptor sets), **depth testing**, and **per-frame
-command recording** — enough to draw your own textured, depth-tested 3D geometry.
-On top of the RHI it adds **materials** (a pipeline + named parameters) and a
-**render graph** (a frame organizer), and it ships **cameras** and **primitive
-mesh builders**, and **offscreen render targets** (render into a texture, sample it
-in a later pass). See [ADR 0006](../../../docs/adr/0006-render-architecture.md),
-[ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md), and
-[ADR 0009](../../../docs/adr/0009-offscreen-render-targets.md). Namespace `zukiru::render`.
+depth buffer → render pass → present) and exposes **GPU buffers** (vertex/index +
+per-frame ring-buffered uniforms), **push constants**, **textures**, **SPIR-V
+graphics pipelines**, **bind groups** (uniform + texture descriptor sets), **depth
+testing**, and **per-frame command recording** — enough to draw your own textured,
+depth-tested 3D geometry. On top of the RHI it adds **materials** (a pipeline + named
+parameters) and a **render graph** (a frame organizer), and it ships **cameras**,
+**primitive mesh builders**, and **offscreen render targets** (render into a texture,
+sample it in a later pass). See [ADR 0006](../../../docs/adr/0006-render-architecture.md),
+[ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md),
+[ADR 0009](../../../docs/adr/0009-offscreen-render-targets.md), and
+[ADR 0010](../../../docs/adr/0010-per-frame-uniforms-and-push-constants.md).
+Namespace `zukiru::render`.
 
 ## Drawing your own geometry
 
@@ -53,8 +55,9 @@ and `destroy*` — opaque `BufferHandle`/`TextureHandle`/`RenderTargetHandle`/
 `PipelineHandle`/`BindGroupHandle`); the **frame** (`beginFrame` acquires, `endFrame`
 submits + presents) and **passes** within it (`beginSwapchainPass` /
 `beginRenderPass(target)` / `endRenderPass` — one open at a time); recording inside a
-pass (`bindPipeline`, `bindBindGroup`, `bindVertexBuffer`, `bindIndexBuffer`, `draw`,
-`drawIndexed`); plus `setClearColor`, `resize`, `waitIdle`, `backend()`, `deviceName()`.
+pass (`bindPipeline`, `bindBindGroup`, `bindVertexBuffer`, `bindIndexBuffer`,
+`pushConstants`, `draw`, `drawIndexed`); plus `setClearColor`, `resize`, `waitIdle`,
+`backend()`, `deviceName()`.
 
 ## Uniforms and textures
 
@@ -77,6 +80,34 @@ auto group = device->createBindGroup(pipeline, entries).value();
 // per frame: device->bindPipeline(pipeline); device->bindBindGroup(group); ...
 device->updateBuffer(ubo, &mvp, sizeof(mvp));  // e.g. a new camera matrix
 ```
+
+Uniform buffers are **ring-buffered per frame-in-flight**: `updateBuffer` writes
+only the copy the current frame reads (selected by a dynamic offset at bind time),
+so re-uploading every frame is safe even while earlier frames are still in flight —
+no stalls, no torn reads. Because it updates just that copy, update every frame you
+draw (values set at creation persist across all copies).
+
+## Push constants
+
+For small **per-draw** data — a model matrix, a tint — push constants beat a uniform
+buffer per object: they're recorded straight into the command buffer, so there's no
+buffer, no descriptor, and no synchronization to worry about. Declare a size on the
+pipeline and push before each draw:
+
+```cpp
+desc.pushConstantSize = sizeof(math::Mat4);   // a layout(push_constant) block, both stages
+auto pipeline = device->createPipeline(desc).value();
+
+// shared per-frame data in a uniform, per-object data in the push constant:
+device->bindPipeline(pipeline); device->bindBindGroup(cameraGroup);
+for (const Object& o : objects) {
+    device->pushConstants(o.model.e, sizeof(o.model.e));
+    device->drawIndexed(o.indexCount);
+}
+```
+
+Keep it small — the spec guarantees only 128 bytes (a `mat4` is 64). Larger or
+per-frame-shared data belongs in a ring-buffered uniform.
 
 Pipelines take **SPIR-V** (`std::span<const u32>`) — produce it offline with
 [`zukiru-shaderc`](../../../tools/shader_compiler) and embed or load it. Viewport/
@@ -218,7 +249,11 @@ physical-device selection (graphics+present+swapchain, prefers a discrete GPU),
 logical device, swapchain (format/present-mode/extent), a **depth attachment**
 (`D32_SFLOAT` preferred, recreated with the swapchain), a two-attachment render
 pass (color + depth, both `loadOp=CLEAR`), framebuffers, command buffers, and
-per-frame sync (2 frames in flight). Buffers are host-visible/coherent (map + memcpy); textures
+per-frame sync (2 frames in flight). Buffers are host-visible/coherent (map + memcpy);
+uniform buffers are allocated as one slice per frame-in-flight (aligned to
+`minUniformBufferOffsetAlignment`) and bound as `UNIFORM_BUFFER_DYNAMIC` with a
+per-frame dynamic offset, so `updateBuffer` never races an in-flight read. Pipelines
+can reserve a push-constant range (both stages); textures
 upload through a staging buffer with image-layout transitions (single-time command
 submits) and get a view + linear sampler. Pipelines are built from the
 `PipelineDesc` (SPIR-V + vertex layout + topology + depth test/write + a
@@ -239,19 +274,17 @@ SHADER_READ_ONLY` with write→sample subpass dependencies) and framebuffer.
 
 ## Scope
 
-Buffers (vertex/index/uniform), RGBA8 textures, offscreen render targets, SPIR-V
-pipelines with uniform + texture bind groups, depth testing, explicit passes +
-command recording (draw / draw-indexed), materials (pipeline + std140 params +
-textures), a render graph (pass scheduling + culling), cameras, primitive meshes
-(`cubeMesh`).
+Buffers (vertex/index + ring-buffered uniforms), push constants, RGBA8 textures,
+offscreen render targets, SPIR-V pipelines with uniform + texture bind groups, depth
+testing, explicit passes + command recording (draw / draw-indexed), materials
+(pipeline + std140 params + textures), a render graph (pass scheduling + culling),
+cameras, primitive meshes (`cubeMesh`).
 **Deferred** (additive, no API break): staging/DEVICE_LOCAL vertex buffers + a real
-GPU allocator (vertex/uniform buffers are host-visible today), per-frame uniform
-ring buffers (`updateBuffer` must not race an in-flight frame), push constants,
-mipmaps, MSAA, depth-only/HDR render targets + MRT, the render graph's **physical
-transient-target allocation + automatic barriers** (the render-target primitive now
-exists; the graph doesn't auto-allocate yet), and additional backends (D3D12/Metal).
-Wayland surface support compiles but is runtime-validated only on a Wayland session
-(see ADR 0005).
+GPU sub-allocator (vertex/uniform buffers are host-visible today), mipmaps, MSAA,
+depth-only/HDR render targets + MRT, the render graph's **physical transient-target
+allocation + automatic barriers** (the render-target primitive now exists; the graph
+doesn't auto-allocate yet), and additional backends (D3D12/Metal). Wayland surface
+support compiles but is runtime-validated only on a Wayland session (see ADR 0005).
 
 ## Tests
 
@@ -268,9 +301,12 @@ a vertex buffer; reject invalid SPIR-V; draw a **textured, uniform-transformed**
 triangle; draw a **depth-tested rotating textured cube** (indexed `cubeMesh`,
 perspective camera, near faces occluding far); draw a **material through a render
 graph** (the cube, its uniforms/bind group owned by a `Material` recorded inside a
-graph pass); and **render offscreen then composite to screen** (the cube into a 512²
+graph pass); **render offscreen then composite to screen** (the cube into a 512²
 render target, sampled onto the window by a vertexless fullscreen triangle — two
-passes in one frame). Verified on an NVIDIA RTX 3060, clean under ASan. The demo
+passes in one frame); and draw a **3×3 grid of independently-spinning cubes** sharing
+one per-frame camera uniform (re-uploaded every frame, ring-buffered) with a per-cube
+model matrix pushed as a **push constant**. Verified on an NVIDIA RTX 3060, clean
+under ASan. The demo
 shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V
 by `zukiru-shaderc` — so the render module itself needs no shader compiler at build
 or run time.

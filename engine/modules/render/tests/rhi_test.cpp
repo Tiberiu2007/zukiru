@@ -71,3 +71,10 @@ TEST_CASE("a vertex layout describes interleaved attributes", "[render][rhi]") {
     REQUIRE(desc.vertexLayout.stride == 20);
     REQUIRE(desc.vertexSpirv.empty());  // unset span is empty
 }
+
+TEST_CASE("a pipeline defaults to depth-tested with no push constants", "[render][rhi]") {
+    const PipelineDesc desc;
+    REQUIRE(desc.depthTest);
+    REQUIRE(desc.depthWrite);
+    REQUIRE(desc.pushConstantSize == 0);  // opt in per pipeline
+}

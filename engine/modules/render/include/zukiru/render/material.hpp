@@ -238,33 +238,29 @@ public:
 
     Material& setFloat(std::string_view name, f32 value) {
         params_.setFloat(name, value);
-        uniformDirty_ = true;
         return *this;
     }
     Material& setVec2(std::string_view name, math::Vec2 value) {
         params_.setVec2(name, value);
-        uniformDirty_ = true;
         return *this;
     }
     Material& setVec3(std::string_view name, math::Vec3 value) {
         params_.setVec3(name, value);
-        uniformDirty_ = true;
         return *this;
     }
     Material& setVec4(std::string_view name, math::Vec4 value) {
         params_.setVec4(name, value);
-        uniformDirty_ = true;
         return *this;
     }
     Material& setMat4(std::string_view name, const math::Mat4& value) {
         params_.setMat4(name, value);
-        uniformDirty_ = true;
         return *this;
     }
     Material& setTexture(std::string_view name, TextureHandle texture);
 
-    // Upload dirty uniforms, (re)build the bind group if textures changed, then
-    // record bindPipeline + bindBindGroup. Call inside a render pass.
+    // Upload the parameters (ring-buffered, so safe every frame), (re)build the bind
+    // group if textures changed, then record bindPipeline + bindBindGroup. Call
+    // inside a render pass.
     void bind(Device& device);
 
     [[nodiscard]] const MaterialParams& params() const noexcept { return params_; }
@@ -278,7 +274,6 @@ private:
     BufferHandle uniformBuffer_{};          // invalid when the layout has no params
     std::vector<TextureHandle> textures_;   // one per layout texture slot
     BindGroupHandle bindGroup_{};
-    bool uniformDirty_ = true;
     bool bindGroupDirty_ = true;
 };
 

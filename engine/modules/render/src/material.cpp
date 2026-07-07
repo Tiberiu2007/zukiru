@@ -70,9 +70,11 @@ Material& Material::setTexture(std::string_view name, TextureHandle texture) {
 void Material::bind(Device& device) {
     const MaterialLayout& layout = template_->layout();
 
-    if (uniformDirty_ && uniformBuffer_.valid()) {
+    // Upload every bind: the uniform buffer is ring-buffered per frame, so writing
+    // the current frame's copy each time is cheap and keeps every frame's slice
+    // current without dirty tracking (which would leave other slices stale).
+    if (uniformBuffer_.valid()) {
         device.updateBuffer(uniformBuffer_, params_.data().data(), params_.size());
-        uniformDirty_ = false;
     }
 
     // (Re)build the bind group once every declared texture slot is filled.

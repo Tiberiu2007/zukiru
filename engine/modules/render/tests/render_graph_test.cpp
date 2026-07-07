@@ -38,6 +38,7 @@ public:
     void bindBindGroup(BindGroupHandle) override {}
     void bindVertexBuffer(BufferHandle) override {}
     void bindIndexBuffer(BufferHandle, IndexType) override {}
+    void pushConstants(const void*, u32) override {}
     void draw(u32, u32) override {}
     void drawIndexed(u32, u32, i32) override {}
     void setClearColor(Color) override {}

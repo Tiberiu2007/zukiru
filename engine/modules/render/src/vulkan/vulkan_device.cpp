@@ -23,6 +23,7 @@
 #include <cstring>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace zukiru::render {
@@ -62,7 +63,9 @@ constexpr u32 kFramesInFlight = 2;
 struct VulkanBuffer {
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkDeviceSize size = 0;
+    VkDeviceSize size = 0;       // total allocation
+    VkDeviceSize sliceSize = 0;  // per-frame slice (== size unless dynamic)
+    bool dynamic = false;        // uniform ring: one slice per frame-in-flight
 };
 
 struct VulkanPipeline {
@@ -81,6 +84,9 @@ struct VulkanTexture {
 struct VulkanBindGroup {
     VkDescriptorSet set = VK_NULL_HANDLE;
     VkPipelineLayout layout = VK_NULL_HANDLE;  // the pipeline layout it was built for
+    // Per-frame slice size of each dynamic (uniform) descriptor, ordered by binding.
+    // A dynamic offset of currentFrame * sliceSize selects this frame's copy.
+    std::vector<VkDeviceSize> dynamicSliceSizes;
 };
 
 struct VulkanRenderTarget {
@@ -94,8 +100,14 @@ struct VulkanRenderTarget {
     Color clearColor{};
 };
 
+[[nodiscard]] constexpr VkDeviceSize alignUp(VkDeviceSize value, VkDeviceSize alignment) {
+    return alignment == 0 ? value : (value + alignment - 1) & ~(alignment - 1);
+}
+
+// Uniform buffers are dynamic so one physical buffer holds a per-frame ring of
+// slices, selected by a dynamic offset at bind time (see createBuffer).
 [[nodiscard]] VkDescriptorType toVkDescriptorType(BindingType type) {
-    return type == BindingType::UniformBuffer ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    return type == BindingType::UniformBuffer ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
                                               : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 }
 
@@ -139,19 +151,29 @@ public:
             case BufferKind::Uniform: usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT; break;
         }
 
+        // Uniform buffers get one slice per frame-in-flight (a ring), so updating
+        // one frame's copy never races another frame reading its own. Slices are
+        // aligned to the device's minimum dynamic-offset alignment.
         VulkanBuffer resource;
-        if (!allocateBuffer(sizeBytes, usage,
+        resource.dynamic = (kind == BufferKind::Uniform);
+        const u32 slices = resource.dynamic ? kFramesInFlight : 1;
+        resource.sliceSize =
+            resource.dynamic ? alignUp(sizeBytes, minUniformAlignment_) : sizeBytes;
+        resource.size = resource.sliceSize * slices;
+
+        if (!allocateBuffer(resource.size, usage,
                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                             resource.buffer, resource.memory)) {
             return {};
         }
-        resource.size = sizeBytes;
 
         if (data != nullptr) {
             void* mapped = nullptr;
-            vkMapMemory(device_, resource.memory, 0, sizeBytes, 0, &mapped);
-            std::memcpy(mapped, data, sizeBytes);
+            vkMapMemory(device_, resource.memory, 0, resource.size, 0, &mapped);
+            for (u32 i = 0; i < slices; ++i) {  // seed every slice so all frames start valid
+                std::memcpy(static_cast<u8*>(mapped) + (i * resource.sliceSize), data, sizeBytes);
+            }
             vkUnmapMemory(device_, resource.memory);
         }
 
@@ -171,9 +193,12 @@ public:
     void updateBuffer(BufferHandle handle, const void* data, usize sizeBytes) override {
         const auto it = buffers_.find(handle.id);
         if (it == buffers_.end() || data == nullptr) return;
+        // Write only the current frame's slice (offset 0 for non-dynamic buffers),
+        // matching the dynamic offset bindBindGroup applies for this frame.
+        const VkDeviceSize offset = it->second.dynamic ? currentFrame_ * it->second.sliceSize : 0;
         void* mapped = nullptr;
-        vkMapMemory(device_, it->second.memory, 0, sizeBytes, 0, &mapped);
-        std::memcpy(mapped, data, sizeBytes);
+        vkMapMemory(device_, it->second.memory, 0, it->second.size, 0, &mapped);
+        std::memcpy(static_cast<u8*>(mapped) + offset, data, sizeBytes);
         vkUnmapMemory(device_, it->second.memory);
     }
 
@@ -314,6 +339,9 @@ public:
         imageInfos.reserve(entries.size());
         std::vector<VkWriteDescriptorSet> writes;
         writes.reserve(entries.size());
+        // Dynamic (uniform) descriptors, collected as {binding, sliceSize} to build
+        // the per-frame dynamic-offset list (ordered by binding) below.
+        std::vector<std::pair<u32, VkDeviceSize>> dynamicEntries;
 
         for (const BindGroupEntry& entry : entries) {
             VkWriteDescriptorSet write{};
@@ -327,10 +355,16 @@ public:
                 if (bit == buffers_.end()) continue;
                 VkDescriptorBufferInfo info{};
                 info.buffer = bit->second.buffer;
-                info.range = VK_WHOLE_SIZE;
+                // Dynamic uniform: describe one slice; bind time picks which one.
+                info.range = bit->second.dynamic ? bit->second.sliceSize : VK_WHOLE_SIZE;
                 bufferInfos.push_back(info);
-                write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                write.descriptorType = bit->second.dynamic
+                                           ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+                                           : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 write.pBufferInfo = &bufferInfos.back();
+                if (bit->second.dynamic) {
+                    dynamicEntries.emplace_back(entry.binding, bit->second.sliceSize);
+                }
             } else if (entry.texture.valid()) {
                 const auto tit = textures_.find(entry.texture.id);
                 if (tit == textures_.end()) continue;
@@ -348,8 +382,17 @@ public:
         }
         vkUpdateDescriptorSets(device_, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 
+        // Dynamic offsets are supplied to vkCmdBindDescriptorSets in ascending
+        // binding order, so sort and keep just the slice sizes.
+        std::sort(dynamicEntries.begin(), dynamicEntries.end());
+        VulkanBindGroup group{set, pit->second.layout, {}};
+        group.dynamicSliceSizes.reserve(dynamicEntries.size());
+        for (const auto& [binding, sliceSize] : dynamicEntries) {
+            group.dynamicSliceSizes.push_back(sliceSize);
+        }
+
         const u32 id = nextBindGroupId_++;
-        bindGroups_[id] = VulkanBindGroup{set, pit->second.layout};
+        bindGroups_[id] = std::move(group);
         return Ok(BindGroupHandle{id});
     }
 
@@ -540,13 +583,28 @@ public:
         if (it == pipelines_.end()) return;
         vkCmdBindPipeline(commandBuffers_[currentFrame_], VK_PIPELINE_BIND_POINT_GRAPHICS,
                           it->second.pipeline);
+        boundPipelineLayout_ = it->second.layout;  // pushConstants targets this layout
+    }
+
+    void pushConstants(const void* data, u32 sizeBytes) override {
+        if (boundPipelineLayout_ == VK_NULL_HANDLE || data == nullptr || sizeBytes == 0) return;
+        vkCmdPushConstants(commandBuffers_[currentFrame_], boundPipelineLayout_,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeBytes,
+                           data);
     }
 
     void bindBindGroup(BindGroupHandle handle) override {
         const auto it = bindGroups_.find(handle.id);
         if (it == bindGroups_.end()) return;
+        // One dynamic offset per dynamic uniform, selecting this frame's ring slice.
+        std::vector<u32> dynamicOffsets;
+        dynamicOffsets.reserve(it->second.dynamicSliceSizes.size());
+        for (const VkDeviceSize sliceSize : it->second.dynamicSliceSizes) {
+            dynamicOffsets.push_back(static_cast<u32>(currentFrame_ * sliceSize));
+        }
         vkCmdBindDescriptorSets(commandBuffers_[currentFrame_], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                it->second.layout, 0, 1, &it->second.set, 0, nullptr);
+                                it->second.layout, 0, 1, &it->second.set,
+                                static_cast<u32>(dynamicOffsets.size()), dynamicOffsets.data());
     }
 
     void bindVertexBuffer(BufferHandle handle) override {
@@ -764,6 +822,10 @@ private:
         info.ppEnabledExtensionNames = deviceExtensions;
         ZK_VK(vkCreateDevice(physicalDevice_, &info, nullptr, &device_));
         vkGetDeviceQueue(device_, queueFamily_, 0, &graphicsQueue_);
+
+        VkPhysicalDeviceProperties props{};
+        vkGetPhysicalDeviceProperties(physicalDevice_, &props);
+        minUniformAlignment_ = props.limits.minUniformBufferOffsetAlignment;
         return true;
     }
 
@@ -1026,7 +1088,7 @@ private:
 
     bool createDescriptorPool() {
         VkDescriptorPoolSize sizes[2]{};
-        sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         sizes[0].descriptorCount = 64;
         sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         sizes[1].descriptorCount = 64;
@@ -1366,10 +1428,17 @@ private:
             }
         }
 
+        VkPushConstantRange pushRange{};
+        pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushRange.offset = 0;
+        pushRange.size = desc.pushConstantSize;
+
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layoutInfo.setLayoutCount = out.setLayout != VK_NULL_HANDLE ? 1u : 0u;
         layoutInfo.pSetLayouts = out.setLayout != VK_NULL_HANDLE ? &out.setLayout : nullptr;
+        layoutInfo.pushConstantRangeCount = desc.pushConstantSize > 0 ? 1u : 0u;
+        layoutInfo.pPushConstantRanges = desc.pushConstantSize > 0 ? &pushRange : nullptr;
         if (vkCreatePipelineLayout(device_, &layoutInfo, nullptr, &out.layout) != VK_SUCCESS) {
             if (out.setLayout != VK_NULL_HANDLE) {
                 vkDestroyDescriptorSetLayout(device_, out.setLayout, nullptr);
@@ -1612,6 +1681,8 @@ private:
     u32 nextTextureId_ = 1;
     u32 nextBindGroupId_ = 1;
     u32 nextRenderTargetId_ = 1;
+    VkDeviceSize minUniformAlignment_ = 256;  // device limit; queried at init
+    VkPipelineLayout boundPipelineLayout_ = VK_NULL_HANDLE;  // for pushConstants
 
     Color clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
     u32 currentFrame_ = 0;
