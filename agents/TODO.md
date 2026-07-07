@@ -17,12 +17,12 @@ Working task list for AI agents and humans. **Read this before starting work; up
 
 Milestone 3 is nearly done: `ecs`, `scene`, `app` complete; **`render`** has RHI + Vulkan + textures + depth + render graph + materials + offscreen render targets (explicit frame/pass split) + ring-buffered per-frame uniforms + push constants, verified on an RTX 3060 (cube through a graph pass; cube rendered offscreen then composited to screen; a 3×3 grid of push-constant cubes). Only graph-driven transient-target allocation / a GPU sub-allocator / MSAA / extra backends / Wayland runtime validation remain — all deferred, tracked under the `render` item.
 
-**Next up — Milestone 4 (make it playable). Highest-value, in order:**
-1. **`games/sandbox/`** — a real `App` subclass that draws the cube via `scene` + `render`. Nothing consumes the engine *as a game* yet; this exercises the full stack end-to-end and will surface integration gaps.
+**Milestone 4 underway — `games/sandbox/` is done** (a playable orbit-camera demo of a spinning cube formation, exercising app+scene+ecs+render on the real GPU). **Next up, highest-value in order:**
+1. **`render`↔`ecs` mesh-renderer bridge** — the sandbox wires mesh→draw by hand; a component that draws itself is the gap it surfaced. (Tracked under `render`/gameplay.)
 2. **`tools/asset_cooker`** — the last remaining M4 tooling piece (`shader_compiler` is done).
 3. **`runtime/` player + `games/pong/`** — first shippable-shaped sample proving the boot→loop→gameplay path.
 
-Nothing exists yet under `editor/`, `games/`, `runtime/`, `benchmarks/`, or `tests/integration/`.
+Nothing exists yet under `editor/`, `runtime/`, `benchmarks/`, or `tests/integration/`. `games/` now has `sandbox/`.
 
 ---
 
@@ -75,7 +75,7 @@ Nothing exists yet under `editor/`, `games/`, `runtime/`, `benchmarks/`, or `tes
 
 ## Milestone 4 — First playable & tooling
 - [ ] `runtime/` — thin player executable that boots a game package
-- [ ] `games/sandbox/` — dev playground exercising current features
+- [x] `games/sandbox/` — dev playground exercising current features — **done 2026-07-07** (agent: claude-opus-4-8). The **first playable demo and first consumer of the engine as a game**. `zukiru_sandbox` executable (built when `-DZUKIRU_BUILD_GAMES=ON`) links `app`+`scene`+`ecs`+`render`+`input`+`math`+`log`. A `Sandbox : app::Application` builds a `scene` hierarchy — a "formation" root node with a 4×4 grid of 16 child cube nodes carrying game-defined `Renderable`/`Spin` ECS components; `updateTransforms()` propagates so cubes inherit the formation spin plus their own. Rendering: a depth-tested textured pipeline driven by a **ring-buffered per-frame camera uniform** (`viewProj`) + a **per-object push-constant** model matrix, issued by iterating the ECS (`world().each<WorldTransform, Renderable>`). Orbit camera on WASD/arrows/Q-E, Esc quits; `ZUKIRU_MAX_FRAMES=N` env auto-quits for headless smoke tests. Own `scene.{vert,frag}` shaders embedded via `zukiru-shaderc` (no shader compiler at build/run). Verified on RTX 3060: builds clean in `debug`/`release`(-Werror)/`asan`; runs 90 frames and exits 0, **clean under asan** (full resource teardown). README present. Surfaces the natural next gap: a `render`↔`ecs` mesh-renderer bridge (the demo wires mesh→draw by hand).
 - [~] `tools/asset_cooker/` + `tools/shader_compiler/` — offline pipeline sharing `reflect`/`assets`
   - [x] `tools/shader_compiler` — **done 2026-07-05** (agent: claude-opus-4-8). GLSL→SPIR-V. `zukiru::shaderc` library (`compileGlslToSpirv(source, stage) -> Result<vector<u32>>`, `stageFromExtension`, `CompileOptions`) over **glslang** (FetchContent 14.3.0, `ENABLE_OPT/HLSL/binaries` off; headers SYSTEM; glslang kept a *private* dep so the public header exposes no glslang types) + a `zukiru-shaderc` CLI (`in.vert -o out.spv [--stage ...]`, infers stage from extension, writes raw LE words, non-zero + diagnostics on error). Targets Vulkan 1.1 / SPIR-V 1.3 to match `render`. Gated behind `ZUKIRU_BUILD_TOOLS=ON`. 5 tests (compile real triangle vert/frag → verified SPIR-V magic, debug-info path, error path, extension inference); CLI verified end-to-end (magic `0x07230203`). Green in `debug`/`release`. README present. **Unblocks the render first-triangle.**
   - [ ] `tools/asset_cooker` — offline asset cooking (uses `reflect`/`assets`).

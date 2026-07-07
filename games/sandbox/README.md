@@ -1,0 +1,56 @@
+# sandbox
+
+The first **playable Zukiru demo** — and the first consumer of the engine *as a
+game*. A 4×4 grid of textured cubes spins in place while the whole formation
+rotates; an orbit camera flies around it. It exercises the full stack end to end:
+
+- **app** — window + GPU device + input + the main loop (`App` / `Application` hooks).
+- **scene + ecs** — a "formation" root node with 16 child cube nodes; each cube
+  carries scene transforms plus game-defined `Renderable` / `Spin` components. The
+  hierarchy propagates (`Scene::updateTransforms()`), so cubes inherit the
+  formation's rotation on top of their own spin.
+- **render** — a depth-tested, textured pipeline driven by a **ring-buffered
+  per-frame camera uniform** (`viewProj`, re-uploaded every frame) and a
+  **per-object push-constant** model matrix. Draws are issued by iterating the ECS
+  (`world().each<WorldTransform, Renderable>`).
+
+No Vulkan or shader-compiler dependency at build or run time — the GLSL in
+[`shaders/`](shaders) is cooked to SPIR-V offline by
+[`zukiru-shaderc`](../../tools/shader_compiler) and embedded as
+[`src/sandbox_shaders.hpp`](src/sandbox_shaders.hpp).
+
+## Build & run
+
+Games are off by default; enable them at configure time:
+
+```bash
+cmake --preset debug -DZUKIRU_BUILD_GAMES=ON
+cmake --build --preset debug --target zukiru_sandbox
+./build/debug/bin/zukiru_sandbox
+```
+
+Needs a display and a Vulkan device (verified on an NVIDIA RTX 3060; clean under
+ASan). Set `ZUKIRU_MAX_FRAMES=N` to auto-quit after N frames — handy for a
+scripted smoke test:
+
+```bash
+ZUKIRU_MAX_FRAMES=90 ./build/debug/bin/zukiru_sandbox
+```
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| `A` / `D` or `←` / `→` | orbit left / right |
+| `W` / `S` or `↑` / `↓` | zoom in / out |
+| `Q` / `E` | raise / lower the camera |
+| `Esc` | quit |
+
+The camera also auto-orbits gently when idle.
+
+## What it's for
+
+Beyond being a demo, the sandbox is the integration test for the engine's public
+API: if a Layer-0…2 change breaks the "make a game" path, this is where it shows.
+It deliberately does the mesh→draw wiring by hand — a `render`↔`ecs` mesh-renderer
+bridge (a component that draws itself) is a natural next step this surfaces.
