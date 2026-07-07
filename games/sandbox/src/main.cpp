@@ -1,8 +1,9 @@
 // Zukiru sandbox — a minimal playable demo that exercises the whole stack:
 //   app (window + device + input + loop)
 //   scene + ecs (a parent "formation" node with a grid of child cube nodes)
-//   render (ring-buffered per-frame camera uniform + per-object push constants,
-//           depth-tested, textured)
+//   renderer (MeshRenderer components drawn by renderMeshes) over render
+//            (ring-buffered per-frame camera uniform + per-object push constants,
+//             depth-tested, textured)
 //
 // A grid of textured cubes spins in place while the whole formation rotates; an
 // orbit camera flies around it (WASD / arrows / Q-E, Esc quits). Set the env var
@@ -15,6 +16,7 @@
 #include <zukiru/render/camera.hpp>
 #include <zukiru/render/primitives.hpp>
 #include <zukiru/render/rhi.hpp>
+#include <zukiru/renderer/renderer.hpp>
 #include <zukiru/scene/scene.hpp>
 
 #include "sandbox_shaders.hpp"
@@ -29,8 +31,8 @@ namespace {
 
 using namespace zukiru;
 
-// Game-defined ECS components, layered onto scene nodes.
-struct Renderable {};  // tag: draw this node as a cube
+// A game-defined ECS component, layered onto scene nodes. (Drawing is handled by
+// renderer::MeshRenderer, attached below.)
 struct Spin {
     math::Vec3 axis{0.0f, 1.0f, 0.0f};
     f32 speed = 1.0f;
@@ -60,13 +62,8 @@ public:
     void onStart(app::App& app) override {
         render::Device& device = app.device();
 
-        // Geometry + a texture.
-        mesh_ = render::cubeMesh(0.8f);
-        indexCount_ = static_cast<u32>(mesh_.indices.size());
-        vbo_ = device.createBuffer(render::BufferKind::Vertex, mesh_.vertices.data(),
-                                   mesh_.vertexBytes());
-        ibo_ = device.createBuffer(render::BufferKind::Index, mesh_.indices.data(),
-                                   mesh_.indexBytes());
+        // Geometry (uploaded to GPU buffers) + a texture.
+        mesh_ = renderer::uploadMesh(device, render::cubeMesh(0.8f));
         const std::array<u8, 8 * 8 * 4> pixels = checkerTexture();
         texture_ = device.createTexture(8, 8, pixels.data());
 
@@ -118,7 +115,10 @@ public:
                 const math::Vec3 axis = math::normalize(
                     math::Vec3{static_cast<f32>(gx) - 1.5f, 1.0f, static_cast<f32>(gz) - 1.5f});
                 const f32 speed = 0.6f + 0.15f * static_cast<f32>(gx + gz);
-                scene_.world().add<Renderable>(cube, {});
+                // A MeshRenderer makes the node draw itself; the renderer system
+                // finds it by (WorldTransform + MeshRenderer).
+                scene_.world().add<renderer::MeshRenderer>(
+                    cube, {.mesh = mesh_, .pipeline = pipeline_, .bindGroup = bindGroup_});
                 scene_.world().add<Spin>(cube, {.axis = axis, .speed = speed});
             }
         }
@@ -180,18 +180,9 @@ public:
         const math::Mat4 viewProj = camera_.viewProjection();
         device.updateBuffer(camUbo_, viewProj.e, sizeof(viewProj.e));
 
-        device.bindPipeline(pipeline_);
-        device.bindBindGroup(bindGroup_);
-        device.bindVertexBuffer(vbo_);
-        device.bindIndexBuffer(ibo_, render::IndexType::U16);
-
-        // One draw per cube; its world matrix rides in as a push constant.
-        scene_.world().each<const scene::WorldTransform, const Renderable>(
-            [&](const scene::WorldTransform& world, const Renderable&) {
-                const math::Mat4 model = world.value.toMatrix();
-                device.pushConstants(model.e, sizeof(model.e));
-                device.drawIndexed(indexCount_);
-            });
+        // The renderer system draws every MeshRenderer entity, pushing each node's
+        // world matrix as a push constant. No hand-wired per-cube draw loop.
+        renderer::renderMeshes(device, scene_.world());
     }
 
     void onShutdown(app::App& app) override {
@@ -201,16 +192,12 @@ public:
         if (pipeline_.valid()) device.destroyPipeline(pipeline_);
         if (texture_.valid()) device.destroyTexture(texture_);
         if (camUbo_.valid()) device.destroyBuffer(camUbo_);
-        if (ibo_.valid()) device.destroyBuffer(ibo_);
-        if (vbo_.valid()) device.destroyBuffer(vbo_);
+        renderer::destroyMesh(device, mesh_);
         ZUKIRU_LOG_INFO("sandbox", "shut down after {} frames", app.frameCount());
     }
 
 private:
-    render::MeshData mesh_;
-    u32 indexCount_ = 0;
-    render::BufferHandle vbo_{};
-    render::BufferHandle ibo_{};
+    renderer::Mesh mesh_{};
     render::BufferHandle camUbo_{};
     render::TextureHandle texture_{};
     render::PipelineHandle pipeline_{};

@@ -91,7 +91,7 @@ Each module is a **separate CMake library target** named `zukiru::<module>`. Mod
 Layer 0  foundation   core, math, memory, containers, platform, log
 Layer 1  services     jobs, assets, filesystem, reflect, event, input
 Layer 2  subsystems   ecs, render, audio, physics, animation, scene
-Layer 3  gameplay     gameplay, scripting, ui, net
+Layer 3  gameplay     renderer, gameplay, scripting, ui, net
 Layer 4  frameworks   app  (ties everything into a runnable loop)
 ```
 
@@ -117,6 +117,7 @@ Layer 4  frameworks   app  (ties everything into a runnable loop)
 | `audio` | 2 | Mixer, sources, spatialization. |
 | `physics` | 2 | Collision, rigid bodies (wraps a backend like Jolt/Bullet). |
 | `animation` | 2 | Skeletal & property animation, blend trees. |
+| `renderer` | 3 | High-level scene renderer over the `render` RHI: `MeshRenderer` components + a `renderMeshes` system that draws ECS entities (bridges render + scene + ecs). |
 | `gameplay` | 3 | High-level gameplay building blocks built on ECS + scene. |
 | `scripting` | 3 | Script VM binding (Lua/AngelScript/native), hot-reload. |
 | `ui` | 3 | In-game UI (retained or immediate), layout, widgets. |
