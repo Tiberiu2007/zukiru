@@ -1,10 +1,10 @@
-#include <zukiru/memory/handle.hpp>
+#include <zuki/memory/handle.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <type_traits>
 
-using namespace zukiru::memory;
+using namespace zuki::memory;
 
 namespace {
 struct MeshTag;

@@ -1,11 +1,11 @@
-#include <zukiru/render/primitives.hpp>
+#include <zuki/render/primitives.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
 
-using namespace zukiru;
-using namespace zukiru::render;
+using namespace zuki;
+using namespace zuki::render;
 
 TEST_CASE("cubeMesh has 6 quad faces of independent vertices", "[render][primitives]") {
     const MeshData cube = cubeMesh();

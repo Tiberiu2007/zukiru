@@ -1,11 +1,11 @@
 // GENERATED test data — textured+uniform shaders (tests/shaders/tex.{vert,frag}):
 // vertex reads a uniform mat4 (set0/binding0), fragment samples a texture
-// (set0/binding1). Embedded SPIR-V, cooked by zukiru-shaderc.
+// (set0/binding1). Embedded SPIR-V, cooked by zuki-shaderc.
 #pragma once
 
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 inline constexpr u32 kTexVertSpirv[] = {
     0x07230203u, 0x00010300u, 0x0008000bu, 0x00000027u, 0x00000000u, 0x00020011u,
@@ -88,4 +88,4 @@ inline constexpr u32 kTexFragSpirv[] = {
     0x0003003eu, 0x00000009u, 0x00000013u, 0x000100fdu, 0x00010038u,
 };
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

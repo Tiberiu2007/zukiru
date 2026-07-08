@@ -5,12 +5,12 @@ lets an ECS entity *draw itself*. Attach a `MeshRenderer` to any entity that als
 has a `scene::WorldTransform`, and `renderMeshes()` draws them all — so games (and
 the editor) stop hand-wiring the per-entity `bind*` / `pushConstants` / `draw` loop.
 It bridges **render + scene + ecs**; the RHI and scene graph stay independent of
-each other. Namespace `zukiru::renderer`.
+each other. Namespace `zuki::renderer`.
 
 ## Usage
 
 ```cpp
-#include <zukiru/renderer/renderer.hpp>
+#include <zuki/renderer/renderer.hpp>
 
 // Once: upload geometry, attach a MeshRenderer to each drawable node.
 renderer::Mesh cube = renderer::uploadMesh(device, render::cubeMesh());

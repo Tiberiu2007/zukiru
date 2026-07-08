@@ -1,9 +1,9 @@
-#include <zukiru/platform/clock.hpp>
+#include <zuki/platform/clock.hpp>
 
 #include <chrono>
 #include <thread>
 
-namespace zukiru::platform {
+namespace zuki::platform {
 
 void sleepFor(Duration duration) {
     if (duration.nanos() <= 0) return;
@@ -37,4 +37,4 @@ u64 unixTimeMilliseconds() noexcept {
                                .count());
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

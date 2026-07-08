@@ -1,9 +1,9 @@
-#include <zukiru/platform/clock.hpp>
+#include <zuki/platform/clock.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::platform;
+using namespace zuki;
+using namespace zuki::platform;
 
 TEST_CASE("performance counter is monotonic and advances", "[platform][clock]") {
     const u64 a = performanceCounter();

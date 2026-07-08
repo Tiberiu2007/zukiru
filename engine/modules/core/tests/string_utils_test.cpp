@@ -1,9 +1,9 @@
-#include <zukiru/core/string_utils.hpp>
+#include <zuki/core/string_utils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-namespace s = zukiru::strings;
+using namespace zuki;
+namespace s = zuki::strings;
 
 TEST_CASE("trim removes surrounding whitespace", "[core][strings]") {
     REQUIRE(s::trim("  hi \t\n") == "hi");

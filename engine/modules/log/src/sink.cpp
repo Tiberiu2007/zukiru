@@ -1,15 +1,15 @@
-#include <zukiru/log/sink.hpp>
+#include <zuki/log/sink.hpp>
 
 #include <cstdio>
 #include <ctime>
 #include <format>
 
-namespace zukiru::log {
+namespace zuki::log {
 namespace {
 
 std::tm localTime(std::time_t t) noexcept {
     std::tm out{};
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
     localtime_s(&out, &t);
 #else
     localtime_r(&t, &out);
@@ -63,4 +63,4 @@ void FileSink::flush() {
     stream_.flush();
 }
 
-}  // namespace zukiru::log
+}  // namespace zuki::log

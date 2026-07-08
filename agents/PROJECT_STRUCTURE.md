@@ -1,6 +1,6 @@
-# Zukiru — Project Structure
+# Zuki — Project Structure
 
-A scalable, modular directory layout for the **Zukiru** game engine.
+A scalable, modular directory layout for the **Zuki** game engine.
 
 - **Language / build:** C++20, CMake (targets-based, one `CMakeLists.txt` per module)
 - **Architecture:** Hybrid — a data-oriented **ECS** core with an optional **scene-graph / GameObject** convenience layer on top
@@ -13,7 +13,7 @@ The guiding rule: **the engine is a set of libraries, not a monolith.** The edit
 ## 1. Top-level layout
 
 ```
-zukiru/
+zuki/
 ├── CMakeLists.txt              # Root: project(), options, add_subdirectory() of each area
 ├── CMakePresets.json           # Named configs (debug/release/asan, per-platform)
 ├── README.md
@@ -24,7 +24,7 @@ zukiru/
 ├── agents/                     # AI-agent context & engineering notes (this folder)
 │
 ├── cmake/                      # Reusable CMake helpers & find modules
-│   ├── ZukiruModule.cmake      # add_zukiru_module() wrapper (warnings, C++ std, install)
+│   ├── ZukiModule.cmake      # add_zuki_module() wrapper (warnings, C++ std, install)
 │   ├── CompilerWarnings.cmake
 │   ├── Platform.cmake          # OS/arch detection, feature flags
 │   └── Dependencies.cmake      # find_package / FetchContent glue
@@ -32,7 +32,7 @@ zukiru/
 ├── engine/                     # THE ENGINE — pure libraries, no app entry point
 │   ├── CMakeLists.txt
 │   ├── modules/                # See §2. Each is an independent library target
-│   └── public/                 # (optional) umbrella "zukiru/zukiru.hpp" convenience header
+│   └── public/                 # (optional) umbrella "zuki/zuki.hpp" convenience header
 │
 ├── editor/                     # Standalone editor app, links against engine modules
 │   ├── CMakeLists.txt
@@ -83,7 +83,7 @@ zukiru/
 
 ## 2. Engine modules (`engine/modules/`)
 
-Each module is a **separate CMake library target** named `zukiru::<module>`. Modules declare their dependencies explicitly and may **only depend on lower layers**. This dependency discipline is what keeps the engine scalable — it prevents the "everything includes everything" rot that kills large C++ projects.
+Each module is a **separate CMake library target** named `zuki::<module>`. Modules declare their dependencies explicitly and may **only depend on lower layers**. This dependency discipline is what keeps the engine scalable — it prevents the "everything includes everything" rot that kills large C++ projects.
 
 ### Layering (low → high; a module may only `#include` from its own layer or below)
 
@@ -128,8 +128,8 @@ Layer 4  frameworks   app  (ties everything into a runnable loop)
 
 ```
 engine/modules/render/
-├── CMakeLists.txt              # add_zukiru_module(render DEPENDS core math platform assets)
-├── include/zukiru/render/      # PUBLIC headers — the module's API surface
+├── CMakeLists.txt              # add_zuki_module(render DEPENDS core math platform assets)
+├── include/zuki/render/      # PUBLIC headers — the module's API surface
 │   ├── renderer.hpp
 │   ├── material.hpp
 │   └── render_graph.hpp
@@ -144,23 +144,23 @@ engine/modules/render/
 └── README.md                   # What this module is, its deps, and any gotchas
 ```
 
-**Convention:** public headers live under `include/zukiru/<module>/…` so every include reads `#include <zukiru/render/renderer.hpp>` — self-documenting and collision-free. `src/` is private and never installed. `target_include_directories(... PUBLIC include PRIVATE src)` enforces this at compile time.
+**Convention:** public headers live under `include/zuki/<module>/…` so every include reads `#include <zuki/render/renderer.hpp>` — self-documenting and collision-free. `src/` is private and never installed. `target_include_directories(... PUBLIC include PRIVATE src)` enforces this at compile time.
 
 ---
 
 ## 3. CMake conventions
 
-- **One target per module.** Use the `add_zukiru_module()` helper (`cmake/ZukiruModule.cmake`) so every module gets identical warning flags, C++ standard, sanitizer wiring, and install rules.
-- **Namespaced ALIAS targets:** every library exports `zukiru::core`, `zukiru::render`, etc. Consumers link the alias, never a raw path.
+- **One target per module.** Use the `add_zuki_module()` helper (`cmake/ZukiModule.cmake`) so every module gets identical warning flags, C++ standard, sanitizer wiring, and install rules.
+- **Namespaced ALIAS targets:** every library exports `zuki::core`, `zuki::render`, etc. Consumers link the alias, never a raw path.
 - **`PUBLIC` vs `PRIVATE` link deps are law.** If module A's *public headers* include module B, link B `PUBLIC`; otherwise `PRIVATE`. This is how transitive dependencies stay correct and minimal.
 - **No global `include_directories()`** — everything flows through `target_*` commands.
-- **Options** (`ZUKIRU_BUILD_EDITOR`, `ZUKIRU_BUILD_TESTS`, `ZUKIRU_RENDER_BACKEND=vulkan`, `ZUKIRU_BUILD_SHARED`) live in the root `CMakeLists.txt` and gate `add_subdirectory()` calls.
+- **Options** (`ZUKI_BUILD_EDITOR`, `ZUKI_BUILD_TESTS`, `ZUKI_RENDER_BACKEND=vulkan`, `ZUKI_BUILD_SHARED`) live in the root `CMakeLists.txt` and gate `add_subdirectory()` calls.
 - **Presets** (`CMakePresets.json`) give named `debug`, `release`, `asan`, `tsan` configurations so contributors and CI share one source of truth.
 
 Example module CMake:
 
 ```cmake
-add_zukiru_module(render
+add_zuki_module(render
   PUBLIC_DEPS  core math assets
   PRIVATE_DEPS platform log
   BACKENDS     vulkan d3d12        # conditionally compiled subdirs
@@ -182,9 +182,9 @@ add_zukiru_module(render
 
 ## 5. Conventions cheat-sheet
 
-- **Namespace:** everything under `zukiru::` (e.g. `zukiru::render`, `zukiru::ecs`). Module = nested namespace. **Exception:** the `core` module populates the root `zukiru` namespace directly (it is the shared vocabulary — `zukiru::i32`, `zukiru::Result`, …); see `docs/adr/0002-core-root-namespace.md`.
+- **Namespace:** everything under `zuki::` (e.g. `zuki::render`, `zuki::ecs`). Module = nested namespace. **Exception:** the `core` module populates the root `zuki` namespace directly (it is the shared vocabulary — `zuki::i32`, `zuki::Result`, …); see `docs/adr/0002-core-root-namespace.md`.
 - **Files:** `snake_case.hpp` / `snake_case.cpp`. Types `PascalCase`, functions/vars `camelCase` or `snake_case` — pick one in `.clang-format` and never argue about it again.
-- **Public API** goes in `include/zukiru/<module>/`; anything in `src/` is private.
+- **Public API** goes in `include/zuki/<module>/`; anything in `src/` is private.
 - **A new module is not "done"** until it has: a `CMakeLists.txt` using the helper, a `README.md`, at least one test, and an entry in the dependency table above.
 - **Assets referenced by the engine core** ship in `assets/`; game-specific assets live under that game's folder in `games/`.
 

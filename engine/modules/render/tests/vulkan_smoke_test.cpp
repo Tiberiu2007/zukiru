@@ -1,11 +1,11 @@
-#include <zukiru/render/rhi.hpp>
+#include <zuki/render/rhi.hpp>
 
-#include <zukiru/math/math.hpp>
-#include <zukiru/platform/window.hpp>
-#include <zukiru/render/camera.hpp>
-#include <zukiru/render/material.hpp>
-#include <zukiru/render/primitives.hpp>
-#include <zukiru/render/render_graph.hpp>
+#include <zuki/math/math.hpp>
+#include <zuki/platform/window.hpp>
+#include <zuki/render/camera.hpp>
+#include <zuki/render/material.hpp>
+#include <zuki/render/primitives.hpp>
+#include <zuki/render/render_graph.hpp>
 
 #include "cube_shaders.hpp"
 #include "fullscreen_shaders.hpp"
@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <memory>
 
-using namespace zukiru;
+using namespace zuki;
 
 namespace {
 
@@ -38,10 +38,10 @@ constexpr Vertex kTriangle[3] = {
 }  // namespace
 
 // Needs a real GPU + display, so hidden by default. Run via:
-//   zukiru_render_tests "[.gpu]"
+//   zuki_render_tests "[.gpu]"
 TEST_CASE("Vulkan device draws user geometry", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru render test", .width = 640, .height = 480});
+        platform::createWindow({.title = "Zuki render test", .width = 640, .height = 480});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 
@@ -98,7 +98,7 @@ TEST_CASE("Vulkan device draws user geometry", "[.gpu]") {
 
 TEST_CASE("invalid SPIR-V is rejected by createPipeline", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru render test", .width = 320, .height = 240});
+        platform::createWindow({.title = "Zuki render test", .width = 320, .height = 240});
     REQUIRE(windowResult.isOk());
     Result<std::unique_ptr<render::Device>> deviceResult =
         render::createDevice(*windowResult.value());
@@ -134,7 +134,7 @@ constexpr std::uint8_t kCheckerPixels[2 * 2 * 4] = {
 
 TEST_CASE("Vulkan device draws a textured, uniform-transformed triangle", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru texture test", .width = 640, .height = 480});
+        platform::createWindow({.title = "Zuki texture test", .width = 640, .height = 480});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 
@@ -221,7 +221,7 @@ struct CubeUniforms {
 // camera whose matrix is re-uploaded every frame.
 TEST_CASE("Vulkan device draws a depth-tested rotating textured cube", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru cube test", .width = 800, .height = 600});
+        platform::createWindow({.title = "Zuki cube test", .width = 800, .height = 600});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 
@@ -320,7 +320,7 @@ TEST_CASE("Vulkan device draws a depth-tested rotating textured cube", "[.gpu]")
 // group) recorded inside a RenderGraph pass — exercises both new layers end to end.
 TEST_CASE("Vulkan device draws a material through a render graph", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru material test", .width = 800, .height = 600});
+        platform::createWindow({.title = "Zuki material test", .width = 800, .height = 600});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 
@@ -415,7 +415,7 @@ TEST_CASE("Vulkan device draws a material through a render graph", "[.gpu]") {
 // render-target-as-texture, and cross-pass synchronization.
 TEST_CASE("Vulkan device renders offscreen and samples the result to screen", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru offscreen test", .width = 800, .height = 600});
+        platform::createWindow({.title = "Zuki offscreen test", .width = 800, .height = 600});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 
@@ -538,7 +538,7 @@ TEST_CASE("Vulkan device renders offscreen and samples the result to screen", "[
 // draw gets cheap per-object data with no buffer/descriptor of its own.
 TEST_CASE("Vulkan device draws many cubes via a per-frame uniform + push constants", "[.gpu]") {
     Result<std::unique_ptr<platform::Window>> windowResult =
-        platform::createWindow({.title = "Zukiru scene test", .width = 800, .height = 600});
+        platform::createWindow({.title = "Zuki scene test", .width = 800, .height = 600});
     REQUIRE(windowResult.isOk());
     std::unique_ptr<platform::Window>& window = windowResult.value();
 

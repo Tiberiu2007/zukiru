@@ -1,4 +1,4 @@
-#include <zukiru/log/logger.hpp>
+#include <zuki/log/logger.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-using namespace zukiru::log;
+using namespace zuki::log;
 
 namespace {
 
@@ -23,7 +23,7 @@ std::shared_ptr<CallbackSink> makeCapture(std::vector<Captured>& out) {
     });
 }
 
-constexpr zukiru::SourceLocation kLoc{"test.cpp", "fn", 1};
+constexpr zuki::SourceLocation kLoc{"test.cpp", "fn", 1};
 
 }  // namespace
 
@@ -90,13 +90,13 @@ TEST_CASE("macros format lazily and route through the default logger", "[log][lo
     logger.addSink(makeCapture(captured));
     logger.setLevel(LogLevel::Info);
 
-    ZUKIRU_LOG_INFO("test", "value={}", 42);
-    ZUKIRU_LOG_WARN("test", "{} items", 3);
+    ZUKI_LOG_INFO("test", "value={}", 42);
+    ZUKI_LOG_WARN("test", "{} items", 3);
 
     // Raise the "noisy" channel so Info is dropped there but Error still passes.
     logger.setChannelLevel("noisy", LogLevel::Error);
-    ZUKIRU_LOG_INFO("noisy", "dropped");
-    ZUKIRU_LOG_ERROR("noisy", "kept");
+    ZUKI_LOG_INFO("noisy", "dropped");
+    ZUKI_LOG_ERROR("noisy", "kept");
 
     REQUIRE(captured.size() == 3);
     REQUIRE(captured[0].message == "value=42");

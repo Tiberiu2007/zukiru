@@ -1,11 +1,11 @@
 // GENERATED test data — fullscreen post shaders (tests/shaders/fullscreen.{vert,frag}):
 // a vertexless fullscreen triangle whose fragment samples a texture (set0/binding0).
-// Used to composite an offscreen render target onto the screen. Cooked by zukiru-shaderc.
+// Used to composite an offscreen render target onto the screen. Cooked by zuki-shaderc.
 #pragma once
 
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 inline constexpr u32 kFullscreenVertSpirv[] = {
     0x07230203u, 0x00010300u, 0x0008000bu, 0x0000002eu, 0x00000000u, 0x00020011u,
@@ -88,4 +88,4 @@ inline constexpr u32 kFullscreenFragSpirv[] = {
     0x0003003eu, 0x00000009u, 0x00000013u, 0x000100fdu, 0x00010038u,
 };
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

@@ -1,8 +1,8 @@
-#include <zukiru/log/log_level.hpp>
+#include <zuki/log/log_level.hpp>
 
-#include <zukiru/core/string_utils.hpp>
+#include <zuki/core/string_utils.hpp>
 
-namespace zukiru::log {
+namespace zuki::log {
 
 std::optional<LogLevel> parseLevel(std::string_view text) noexcept {
     const std::string_view s = strings::trim(text);
@@ -19,4 +19,4 @@ std::optional<LogLevel> parseLevel(std::string_view text) noexcept {
     return std::nullopt;
 }
 
-}  // namespace zukiru::log
+}  // namespace zuki::log

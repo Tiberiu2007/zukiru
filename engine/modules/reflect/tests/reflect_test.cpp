@@ -1,11 +1,11 @@
-#include <zukiru/reflect/reflect.hpp>
+#include <zuki/reflect/reflect.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
 
-using namespace zukiru;
-using namespace zukiru::reflect;
+using namespace zuki;
+using namespace zuki::reflect;
 
 namespace {
 

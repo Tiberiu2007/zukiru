@@ -1,10 +1,10 @@
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <type_traits>
 
-using namespace zukiru;
+using namespace zuki;
 
 TEST_CASE("fixed-width aliases have the advertised sizes", "[core][types]") {
     STATIC_REQUIRE(sizeof(i8) == 1);

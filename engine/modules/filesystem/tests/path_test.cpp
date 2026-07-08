@@ -1,8 +1,8 @@
-#include <zukiru/filesystem/path.hpp>
+#include <zuki/filesystem/path.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru::filesystem;
+using namespace zuki::filesystem;
 
 TEST_CASE("normalize collapses . and .. and forces an absolute root", "[filesystem][path]") {
     REQUIRE(path::normalize("assets/textures/hero.png") == "/assets/textures/hero.png");

@@ -1,11 +1,11 @@
 // Mesh upload/teardown + the mesh-render system that draws MeshRenderer entities.
-#include <zukiru/renderer/mesh.hpp>
-#include <zukiru/renderer/mesh_renderer.hpp>
+#include <zuki/renderer/mesh.hpp>
+#include <zuki/renderer/mesh_renderer.hpp>
 
-#include <zukiru/math/mat.hpp>
-#include <zukiru/scene/components.hpp>
+#include <zuki/math/mat.hpp>
+#include <zuki/scene/components.hpp>
 
-namespace zukiru::renderer {
+namespace zuki::renderer {
 
 Mesh uploadMesh(render::Device& device, const render::MeshData& data) {
     Mesh mesh;
@@ -68,4 +68,4 @@ void renderMeshes(render::Device& device, ecs::World& world) {
         });
 }
 
-}  // namespace zukiru::renderer
+}  // namespace zuki::renderer

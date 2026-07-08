@@ -1,4 +1,4 @@
-#include <zukiru/shaderc/shader_compiler.hpp>
+#include <zuki/shaderc/shader_compiler.hpp>
 
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace zukiru::shaderc {
+namespace zuki::shaderc {
 namespace {
 
 // glslang requires one process-wide init. Do it once, lazily, and never finalize
@@ -89,4 +89,4 @@ std::optional<Stage> stageFromExtension(std::string_view path) {
     return std::nullopt;
 }
 
-}  // namespace zukiru::shaderc
+}  // namespace zuki::shaderc

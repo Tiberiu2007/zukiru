@@ -1,10 +1,10 @@
-#include <zukiru/input/input.hpp>
+#include <zuki/input/input.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zukiru;
-using namespace zukiru::input;
+using namespace zuki;
+using namespace zuki::input;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("key edges: down / pressed / released across frames", "[input]") {

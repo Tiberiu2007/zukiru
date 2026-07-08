@@ -2,14 +2,14 @@
 #
 # No application entry point lives here (see agents/PROJECT_STRUCTURE.md §4).
 # Each subdirectory of modules/ that has a CMakeLists.txt is an independent
-# `zukiru::<module>` target; they are auto-discovered so adding a module is
+# `zuki::<module>` target; they are auto-discovered so adding a module is
 # just creating its folder + CMakeLists.txt (no edit here needed).
 
 file(GLOB _module_lists CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/modules/*/CMakeLists.txt")
 
 if(NOT _module_lists)
-  message(STATUS "Zukiru: no engine modules yet (Milestone 1 will add them)")
+  message(STATUS "Zuki: no engine modules yet (Milestone 1 will add them)")
 endif()
 
 foreach(_list ${_module_lists})

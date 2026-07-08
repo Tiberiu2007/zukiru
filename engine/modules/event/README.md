@@ -2,7 +2,7 @@
 
 **Layer 1 — services.** A type-safe publish/subscribe event bus with both
 synchronous and deferred dispatch. Header-only. Depends only on
-[`core`](../core). Namespace `zukiru::event`.
+[`core`](../core). Namespace `zuki::event`.
 
 ## Concepts
 
@@ -16,8 +16,8 @@ synchronous and deferred dispatch. Header-only. Depends only on
 ## Usage
 
 ```cpp
-#include <zukiru/event/event.hpp>
-using namespace zukiru::event;
+#include <zuki/event/event.hpp>
+using namespace zuki::event;
 
 struct DamageTaken { EntityId who; f32 amount; };
 

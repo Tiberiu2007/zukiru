@@ -1,13 +1,13 @@
-#include <zukiru/render/render_graph.hpp>
+#include <zuki/render/render_graph.hpp>
 
-#include <zukiru/render/rhi.hpp>
+#include <zuki/render/rhi.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::render;
+using namespace zuki;
+using namespace zuki::render;
 
 namespace {
 

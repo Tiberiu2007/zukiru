@@ -1,9 +1,9 @@
-#include <zukiru/input/platform_bridge.hpp>
+#include <zuki/input/platform_bridge.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::input;
+using namespace zuki;
+using namespace zuki::input;
 
 namespace {
 

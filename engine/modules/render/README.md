@@ -16,19 +16,19 @@ sample it in a later pass). See [ADR 0006](../../../docs/adr/0006-render-archite
 [ADR 0008](../../../docs/adr/0008-render-graph-and-materials.md),
 [ADR 0009](../../../docs/adr/0009-offscreen-render-targets.md), and
 [ADR 0010](../../../docs/adr/0010-per-frame-uniforms-and-push-constants.md).
-Namespace `zukiru::render`.
+Namespace `zuki::render`.
 
 ## Drawing your own geometry
 
 ```cpp
-#include <zukiru/render/render.hpp>
+#include <zuki/render/render.hpp>
 
 auto device = render::createDevice(*window).value();
 
 // Upload a vertex buffer and build a pipeline that reads it.
 auto vbo = device->createBuffer(render::BufferKind::Vertex, verts, sizeof(verts));
 render::PipelineDesc desc;
-desc.vertexSpirv   = vertSpirv;    // std::span<const u32> — cooked by zukiru-shaderc
+desc.vertexSpirv   = vertSpirv;    // std::span<const u32> — cooked by zuki-shaderc
 desc.fragmentSpirv = fragSpirv;
 desc.vertexLayout.stride = sizeof(Vertex);
 desc.vertexLayout.attributes = {
@@ -110,7 +110,7 @@ Keep it small — the spec guarantees only 128 bytes (a `mat4` is 64). Larger or
 per-frame-shared data belongs in a ring-buffered uniform.
 
 Pipelines take **SPIR-V** (`std::span<const u32>`) — produce it offline with
-[`zukiru-shaderc`](../../../tools/shader_compiler) and embed or load it. Viewport/
+[`zuki-shaderc`](../../../tools/shader_compiler) and embed or load it. Viewport/
 scissor are dynamic, so pipelines survive window resizes without a rebuild.
 
 ## Depth testing and 3D meshes
@@ -290,7 +290,7 @@ support compiles but is runtime-validated only on a Wayland session (see ADR 000
 
 ```bash
 ctest --preset debug -R '^render\.'          # camera/RHI/primitives/material/graph (CI-safe)
-zukiru_render_tests "[.gpu]"                 # real GPU: pipelines/depth/materials/graph
+zuki_render_tests "[.gpu]"                 # real GPU: pipelines/depth/materials/graph
 ```
 
 Camera math, RHI value types, `cubeMesh` geometry, **material std140 packing**, and
@@ -308,7 +308,7 @@ one per-frame camera uniform (re-uploaded every frame, ring-buffered) with a per
 model matrix pushed as a **push constant**. Verified on an NVIDIA RTX 3060, clean
 under ASan. The demo
 shaders live in [`tests/shaders/`](tests/shaders) (GLSL) and are embedded as SPIR-V
-by `zukiru-shaderc` — so the render module itself needs no shader compiler at build
+by `zuki-shaderc` — so the render module itself needs no shader compiler at build
 or run time.
 
 ## Dependencies

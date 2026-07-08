@@ -1,4 +1,4 @@
-#include <zukiru/containers/slot_map.hpp>
+#include <zuki/containers/slot_map.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -6,8 +6,8 @@
 #include <type_traits>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::containers;
+using namespace zuki;
+using namespace zuki::containers;
 
 TEST_CASE("insert returns a valid handle to the value", "[containers][slot_map]") {
     SlotMap<std::string> map;

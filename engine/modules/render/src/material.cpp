@@ -1,8 +1,8 @@
 // Material system: a pipeline (MaterialTemplate) plus its parameter values and
 // GPU resources (Material), built entirely on the RHI. See ADR 0008.
-#include <zukiru/render/material.hpp>
+#include <zuki/render/material.hpp>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 // --- MaterialTemplate ----------------------------------------------------
 
@@ -108,4 +108,4 @@ void Material::bind(Device& device) {
     if (bindGroup_.valid()) device.bindBindGroup(bindGroup_);
 }
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

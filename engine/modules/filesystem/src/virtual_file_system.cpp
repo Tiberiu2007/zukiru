@@ -1,12 +1,12 @@
-#include <zukiru/filesystem/virtual_file_system.hpp>
+#include <zuki/filesystem/virtual_file_system.hpp>
 
-#include <zukiru/filesystem/path.hpp>
-#include <zukiru/platform/file_io.hpp>
+#include <zuki/filesystem/path.hpp>
+#include <zuki/platform/file_io.hpp>
 
 #include <format>
 #include <utility>
 
-namespace zukiru::filesystem {
+namespace zuki::filesystem {
 namespace stdfs = std::filesystem;
 
 bool FileSystem::mount(std::string_view virtualPrefix, const stdfs::path& realDirectory,
@@ -119,4 +119,4 @@ Status FileSystem::writeFile(std::string_view virtualPath, std::string_view data
     return platform::writeFile(real, data, append);
 }
 
-}  // namespace zukiru::filesystem
+}  // namespace zuki::filesystem

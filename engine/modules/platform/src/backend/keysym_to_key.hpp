@@ -6,11 +6,11 @@
 // in comments to keep this header free of X11/xkb includes.
 #pragma once
 
-#include <zukiru/platform/window.hpp>
+#include <zuki/platform/window.hpp>
 
 #include <cstdint>
 
-namespace zukiru::platform {
+namespace zuki::platform {
 
 [[nodiscard]] inline Key keysymToKey(std::uint32_t ks) noexcept {
     const auto offset = [](Key base, std::uint32_t delta) {
@@ -62,4 +62,4 @@ namespace zukiru::platform {
     }
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

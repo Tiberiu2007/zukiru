@@ -1,11 +1,11 @@
-#include <zukiru/platform/thread.hpp>
+#include <zuki/platform/thread.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <thread>
 
-using namespace zukiru;
-using namespace zukiru::platform;
+using namespace zuki;
+using namespace zuki::platform;
 
 TEST_CASE("hardwareConcurrency is at least one", "[platform][thread]") {
     REQUIRE(hardwareConcurrency() >= 1);
@@ -27,7 +27,7 @@ TEST_CASE("yieldThread does not crash", "[platform][thread]") {
     SUCCEED();
 }
 
-#if defined(ZUKIRU_OS_LINUX) || defined(ZUKIRU_OS_MACOS)
+#if defined(ZUKI_OS_LINUX) || defined(ZUKI_OS_MACOS)
 TEST_CASE("thread name round-trips on POSIX", "[platform][thread]") {
     REQUIRE(setThreadName("zk-worker"));
     REQUIRE(threadName() == "zk-worker");

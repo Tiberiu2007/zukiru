@@ -1,9 +1,9 @@
-#include <zukiru/memory/alignment.hpp>
+#include <zuki/memory/alignment.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::memory;
+using namespace zuki;
+using namespace zuki::memory;
 
 TEST_CASE("isPowerOfTwo", "[memory][alignment]") {
     STATIC_REQUIRE(isPowerOfTwo(1));

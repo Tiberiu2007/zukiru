@@ -1,6 +1,6 @@
-#include <zukiru/core/time.hpp>
+#include <zuki/core/time.hpp>
 
-namespace zukiru {
+namespace zuki {
 
 Instant Clock::now() {
     return Instant{std::chrono::steady_clock::now()};
@@ -10,4 +10,4 @@ Duration Instant::elapsed() const {
     return Clock::now() - *this;
 }
 
-}  // namespace zukiru
+}  // namespace zuki

@@ -1,12 +1,12 @@
-#include <zukiru/ecs/ecs.hpp>
+#include <zuki/ecs/ecs.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::ecs;
+using namespace zuki;
+using namespace zuki::ecs;
 
 namespace {
 

@@ -3,23 +3,23 @@
 # drawn by renderMeshes; ring-buffered per-frame uniform + push constants + depth) end
 # to end on the real GPU.
 #
-# Shaders are cooked offline by zukiru-shaderc and embedded (src/sandbox_shaders.hpp),
+# Shaders are cooked offline by zuki-shaderc and embedded (src/sandbox_shaders.hpp),
 # so the demo needs no shader compiler at build or run time.
-add_executable(zukiru_sandbox src/main.cpp)
+add_executable(zuki_sandbox src/main.cpp)
 
-target_link_libraries(zukiru_sandbox PRIVATE
-  zukiru::app
-  zukiru::render
-  zukiru::renderer
-  zukiru::scene
-  zukiru::ecs
-  zukiru::input
-  zukiru::platform
-  zukiru::math
-  zukiru::log
-  zukiru::core
-  zukiru::warnings
-  zukiru::platform_flags)
+target_link_libraries(zuki_sandbox PRIVATE
+  zuki::app
+  zuki::render
+  zuki::renderer
+  zuki::scene
+  zuki::ecs
+  zuki::input
+  zuki::platform
+  zuki::math
+  zuki::log
+  zuki::core
+  zuki::warnings
+  zuki::platform_flags)
 
-target_include_directories(zukiru_sandbox PRIVATE src)
-target_compile_features(zukiru_sandbox PRIVATE cxx_std_20)
+target_include_directories(zuki_sandbox PRIVATE src)
+target_compile_features(zuki_sandbox PRIVATE cxx_std_20)

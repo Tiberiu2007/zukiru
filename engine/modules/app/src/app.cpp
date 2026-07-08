@@ -1,11 +1,11 @@
-#include <zukiru/app/app.hpp>
+#include <zuki/app/app.hpp>
 
-#include <zukiru/core/time.hpp>
-#include <zukiru/input/platform_bridge.hpp>
+#include <zuki/core/time.hpp>
+#include <zuki/input/platform_bridge.hpp>
 
 #include <utility>
 
-namespace zukiru::app {
+namespace zuki::app {
 
 App::App(std::unique_ptr<platform::Window> window,
          std::unique_ptr<render::Device> device) noexcept
@@ -70,4 +70,4 @@ void App::run(Application& game) {
     game.onShutdown(*this);
 }
 
-}  // namespace zukiru::app
+}  // namespace zuki::app

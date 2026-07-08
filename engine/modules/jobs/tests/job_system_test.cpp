@@ -1,4 +1,4 @@
-#include <zukiru/jobs/job_system.hpp>
+#include <zuki/jobs/job_system.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -7,8 +7,8 @@
 #include <future>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::jobs;
+using namespace zuki;
+using namespace zuki::jobs;
 
 TEST_CASE("a job system has at least one worker", "[jobs]") {
     JobSystem jobs;

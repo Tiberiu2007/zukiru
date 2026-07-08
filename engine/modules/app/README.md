@@ -6,15 +6,15 @@ the engine's modules into a **runnable program**: the first window that opens,
 clears, and responds to input.
 
 Depends on [`core`](../core), [`platform`](../platform), [`input`](../input) and
-[`render`](../render). Namespace `zukiru::app`.
+[`render`](../render). Namespace `zuki::app`.
 
 ## Writing a game
 
 Subclass `Application` and override the hooks you need — all default to no-ops:
 
 ```cpp
-#include <zukiru/app/app.hpp>
-using namespace zukiru;
+#include <zuki/app/app.hpp>
+using namespace zuki;
 
 struct MyGame : app::Application {
     void onStart(app::App& a) override {
@@ -71,7 +71,7 @@ three, and multi-window support.
 
 ```bash
 ctest --preset debug -R '^app\.'      # config defaults (CI-safe)
-zukiru_app_tests "[.app]"             # real GPU: run the loop, quit after N frames
+zuki_app_tests "[.app]"             # real GPU: run the loop, quit after N frames
 ```
 
 The hidden `[.app]` test opens a real window, runs the loop on the actual device,

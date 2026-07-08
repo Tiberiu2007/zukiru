@@ -1,14 +1,14 @@
-#include <zukiru/platform/dynamic_library.hpp>
+#include <zuki/platform/dynamic_library.hpp>
 
 #include <string>
 
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
 
-namespace zukiru::platform {
+namespace zuki::platform {
 
 DynamicLibrary::~DynamicLibrary() {
     unload();
@@ -30,7 +30,7 @@ DynamicLibrary& DynamicLibrary::operator=(DynamicLibrary&& other) noexcept {
 bool DynamicLibrary::load(std::string_view path) {
     unload();
     const std::string owned{path};
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
     handle_ = owned.empty() ? static_cast<void*>(GetModuleHandleA(nullptr))
                             : static_cast<void*>(LoadLibraryA(owned.c_str()));
 #else
@@ -41,7 +41,7 @@ bool DynamicLibrary::load(std::string_view path) {
 
 void DynamicLibrary::unload() noexcept {
     if (handle_ == nullptr) return;
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
     FreeLibrary(static_cast<HMODULE>(handle_));
 #else
     dlclose(handle_);
@@ -52,7 +52,7 @@ void DynamicLibrary::unload() noexcept {
 void* DynamicLibrary::getSymbol(std::string_view name) const {
     if (handle_ == nullptr) return nullptr;
     const std::string owned{name};
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
     return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle_), owned.c_str()));
 #else
     return dlsym(handle_, owned.c_str());
@@ -60,13 +60,13 @@ void* DynamicLibrary::getSymbol(std::string_view name) const {
 }
 
 std::string_view DynamicLibrary::nativeExtension() noexcept {
-#if defined(ZUKIRU_OS_WINDOWS)
+#if defined(ZUKI_OS_WINDOWS)
     return ".dll";
-#elif defined(ZUKIRU_OS_MACOS)
+#elif defined(ZUKI_OS_MACOS)
     return ".dylib";
 #else
     return ".so";
 #endif
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

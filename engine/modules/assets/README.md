@@ -8,13 +8,13 @@ eviction** — the plumbing every other subsystem loads its data through.
 Public API depends only on [`core`](../core); the implementation reads bytes via
 [`filesystem`](../filesystem) and runs async loads on [`jobs`](../jobs) (both
 forward-declared in the header, so including `assets` stays cheap). Namespace
-`zukiru::assets`.
+`zuki::assets`.
 
 ## Register importers, then load
 
 ```cpp
-#include <zukiru/assets/assets.hpp>
-using namespace zukiru::assets;
+#include <zuki/assets/assets.hpp>
+using namespace zuki::assets;
 
 struct Texture { u32 w, h; std::vector<byte> pixels; };
 

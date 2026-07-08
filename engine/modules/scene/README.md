@@ -5,7 +5,7 @@
 transform propagation, and prefab instancing (subtree clone).
 
 Depends on [`core`](../core), [`ecs`](../ecs) (a Scene owns a `World`) and
-[`math`](../math) (transform types). Namespace `zukiru::scene`.
+[`math`](../math) (transform types). Namespace `zuki::scene`.
 
 ## Nodes are entities
 
@@ -15,8 +15,8 @@ is expressed with `Parent`/`Children` components. Because a Scene *is* a world,
 you can attach and query your own components on any node:
 
 ```cpp
-#include <zukiru/scene/scene.hpp>
-using namespace zukiru::scene;
+#include <zuki/scene/scene.hpp>
+using namespace zuki::scene;
 
 Scene scene;
 Entity root  = scene.createNode("root");

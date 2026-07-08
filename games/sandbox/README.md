@@ -1,6 +1,6 @@
 # sandbox
 
-The first **playable Zukiru demo** — and the first consumer of the engine *as a
+The first **playable Zuki demo** — and the first consumer of the engine *as a
 game*. A 4×4 grid of textured cubes spins in place while the whole formation
 rotates; an orbit camera flies around it. It exercises the full stack end to end:
 
@@ -17,7 +17,7 @@ rotates; an orbit camera flies around it. It exercises the full stack end to end
 
 No Vulkan or shader-compiler dependency at build or run time — the GLSL in
 [`shaders/`](shaders) is cooked to SPIR-V offline by
-[`zukiru-shaderc`](../../tools/shader_compiler) and embedded as
+[`zuki-shaderc`](../../tools/shader_compiler) and embedded as
 [`src/sandbox_shaders.hpp`](src/sandbox_shaders.hpp).
 
 ## Build & run
@@ -25,17 +25,17 @@ No Vulkan or shader-compiler dependency at build or run time — the GLSL in
 Games are off by default; enable them at configure time:
 
 ```bash
-cmake --preset debug -DZUKIRU_BUILD_GAMES=ON
-cmake --build --preset debug --target zukiru_sandbox
-./build/debug/bin/zukiru_sandbox
+cmake --preset debug -DZUKI_BUILD_GAMES=ON
+cmake --build --preset debug --target zuki_sandbox
+./build/debug/bin/zuki_sandbox
 ```
 
 Needs a display and a Vulkan device (verified on an NVIDIA RTX 3060; clean under
-ASan). Set `ZUKIRU_MAX_FRAMES=N` to auto-quit after N frames — handy for a
+ASan). Set `ZUKI_MAX_FRAMES=N` to auto-quit after N frames — handy for a
 scripted smoke test:
 
 ```bash
-ZUKIRU_MAX_FRAMES=90 ./build/debug/bin/zukiru_sandbox
+ZUKI_MAX_FRAMES=90 ./build/debug/bin/zuki_sandbox
 ```
 
 ## Controls

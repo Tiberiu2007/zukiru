@@ -5,14 +5,14 @@
 structs stored struct-of-arrays, and queries are tight loops over contiguous
 columns. Everything gameplay-facing (`scene`, `render`, systems) is built on this.
 
-Depends only on [`core`](../core). Namespace `zukiru::ecs`. The storage decision
+Depends only on [`core`](../core). Namespace `zuki::ecs`. The storage decision
 is recorded in [ADR 0004](../../../docs/adr/0004-ecs-storage-architecture.md).
 
 ## Entities and components
 
 ```cpp
-#include <zukiru/ecs/ecs.hpp>
-using namespace zukiru::ecs;
+#include <zuki/ecs/ecs.hpp>
+using namespace zuki::ecs;
 
 struct Position { f32 x, y; };
 struct Velocity { f32 x, y; };

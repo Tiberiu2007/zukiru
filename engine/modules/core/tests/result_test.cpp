@@ -1,10 +1,10 @@
-#include <zukiru/core/result.hpp>
+#include <zuki/core/result.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
 
-using namespace zukiru;
+using namespace zuki;
 
 namespace {
 

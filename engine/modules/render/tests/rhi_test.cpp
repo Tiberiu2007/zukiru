@@ -1,9 +1,9 @@
-#include <zukiru/render/rhi.hpp>
+#include <zuki/render/rhi.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::render;
+using namespace zuki;
+using namespace zuki::render;
 
 TEST_CASE("DeviceConfig defaults to a vsynced Vulkan device", "[render][rhi]") {
     const DeviceConfig cfg;

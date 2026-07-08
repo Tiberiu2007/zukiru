@@ -1,4 +1,4 @@
-// Zukiru sandbox — a minimal playable demo that exercises the whole stack:
+// Zuki sandbox — a minimal playable demo that exercises the whole stack:
 //   app (window + device + input + loop)
 //   scene + ecs (a parent "formation" node with a grid of child cube nodes)
 //   renderer (MeshRenderer components drawn by renderMeshes) over render
@@ -7,17 +7,17 @@
 //
 // A grid of textured cubes spins in place while the whole formation rotates; an
 // orbit camera flies around it (WASD / arrows / Q-E, Esc quits). Set the env var
-// ZUKIRU_MAX_FRAMES=N to auto-quit after N frames (used for headless smoke tests).
-#include <zukiru/app/app.hpp>
-#include <zukiru/ecs/world.hpp>
-#include <zukiru/input/input_state.hpp>
-#include <zukiru/log/log.hpp>
-#include <zukiru/math/math.hpp>
-#include <zukiru/render/camera.hpp>
-#include <zukiru/render/primitives.hpp>
-#include <zukiru/render/rhi.hpp>
-#include <zukiru/renderer/renderer.hpp>
-#include <zukiru/scene/scene.hpp>
+// ZUKI_MAX_FRAMES=N to auto-quit after N frames (used for headless smoke tests).
+#include <zuki/app/app.hpp>
+#include <zuki/ecs/world.hpp>
+#include <zuki/input/input_state.hpp>
+#include <zuki/log/log.hpp>
+#include <zuki/math/math.hpp>
+#include <zuki/render/camera.hpp>
+#include <zuki/render/primitives.hpp>
+#include <zuki/render/rhi.hpp>
+#include <zuki/renderer/renderer.hpp>
+#include <zuki/scene/scene.hpp>
 
 #include "sandbox_shaders.hpp"
 
@@ -29,7 +29,7 @@
 
 namespace {
 
-using namespace zukiru;
+using namespace zuki;
 
 // A game-defined ECS component, layered onto scene nodes. (Drawing is handled by
 // renderer::MeshRenderer, attached below.)
@@ -82,7 +82,7 @@ public:
         desc.pushConstantSize = sizeof(math::Mat4);
         Result<render::PipelineHandle> pipeline = device.createPipeline(desc);
         if (pipeline.isErr()) {
-            ZUKIRU_LOG_ERROR("sandbox", "pipeline creation failed: {}", pipeline.error().message);
+            ZUKI_LOG_ERROR("sandbox", "pipeline creation failed: {}", pipeline.error().message);
             app.requestQuit();
             return;
         }
@@ -97,7 +97,7 @@ public:
         };
         Result<render::BindGroupHandle> group = device.createBindGroup(pipeline_, entries);
         if (group.isErr()) {
-            ZUKIRU_LOG_ERROR("sandbox", "bind group failed: {}", group.error().message);
+            ZUKI_LOG_ERROR("sandbox", "bind group failed: {}", group.error().message);
             app.requestQuit();
             return;
         }
@@ -123,10 +123,10 @@ public:
             }
         }
 
-        if (const char* limit = std::getenv("ZUKIRU_MAX_FRAMES"); limit != nullptr) {
+        if (const char* limit = std::getenv("ZUKI_MAX_FRAMES"); limit != nullptr) {
             maxFrames_ = std::strtoull(limit, nullptr, 10);
         }
-        ZUKIRU_LOG_INFO("sandbox", "started on {} ({} cubes)", device.deviceName(),
+        ZUKI_LOG_INFO("sandbox", "started on {} ({} cubes)", device.deviceName(),
                         scene_.world().entityCount() - 1);
     }
 
@@ -193,7 +193,7 @@ public:
         if (texture_.valid()) device.destroyTexture(texture_);
         if (camUbo_.valid()) device.destroyBuffer(camUbo_);
         renderer::destroyMesh(device, mesh_);
-        ZUKIRU_LOG_INFO("sandbox", "shut down after {} frames", app.frameCount());
+        ZUKI_LOG_INFO("sandbox", "shut down after {} frames", app.frameCount());
     }
 
 private:
@@ -217,10 +217,10 @@ private:
 }  // namespace
 
 int main() {
-    zukiru::Result<std::unique_ptr<zukiru::app::App>> app = zukiru::app::App::create(
-        {.window = {.title = "Zukiru Sandbox", .width = 1280, .height = 720}});
+    zuki::Result<std::unique_ptr<zuki::app::App>> app = zuki::app::App::create(
+        {.window = {.title = "Zuki Sandbox", .width = 1280, .height = 720}});
     if (app.isErr()) {
-        ZUKIRU_LOG_ERROR("sandbox", "failed to start: {}", app.error().message);
+        ZUKI_LOG_ERROR("sandbox", "failed to start: {}", app.error().message);
         return 1;
     }
     Sandbox game;

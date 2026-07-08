@@ -1,11 +1,11 @@
-#include <zukiru/memory/arena_allocator.hpp>
+#include <zuki/memory/arena_allocator.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
 
-using namespace zukiru;
-using namespace zukiru::memory;
+using namespace zuki;
+using namespace zuki::memory;
 
 TEST_CASE("arena hands out advancing, aligned blocks", "[memory][arena]") {
     ArenaAllocator arena(1024);

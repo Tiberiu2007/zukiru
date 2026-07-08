@@ -1,9 +1,9 @@
-#include <zukiru/math/mat.hpp>
+#include <zuki/math/mat.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zukiru::math;
+using namespace zuki::math;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Mat4 defaults to identity and is a multiplicative unit", "[math][mat]") {

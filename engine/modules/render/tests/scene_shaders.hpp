@@ -1,12 +1,12 @@
 // GENERATED test data — scene shaders (tests/shaders/scene.{vert,frag}): the vertex
 // reads a per-frame camera uniform { mat4 viewProj } (set0/binding0, ring-buffered)
 // and a per-draw push constant { mat4 model }; the fragment samples a texture
-// (set0/binding1) with a directional light. Cooked by zukiru-shaderc.
+// (set0/binding1) with a directional light. Cooked by zuki-shaderc.
 #pragma once
 
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 inline constexpr u32 kSceneVertSpirv[] = {
     0x07230203u, 0x00010300u, 0x0008000bu, 0x0000003fu, 0x00000000u, 0x00020011u,
@@ -143,4 +143,4 @@ inline constexpr u32 kSceneFragSpirv[] = {
     0x0003003eu, 0x0000001du, 0x0000002fu, 0x000100fdu, 0x00010038u,
 };
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

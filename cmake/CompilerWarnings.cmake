@@ -1,21 +1,21 @@
-# CompilerWarnings.cmake — a shared warning set for every Zukiru module.
+# CompilerWarnings.cmake — a shared warning set for every Zuki module.
 #
-# Exposes an INTERFACE target `zukiru::warnings` that the module helper links
+# Exposes an INTERFACE target `zuki::warnings` that the module helper links
 # PRIVATE-ly onto each module. Keeping this in one place means "turn on a new
 # warning" is a one-line change that applies engine-wide.
 #
-# Controlled by the ZUKIRU_WARNINGS_AS_ERRORS option (defined in the root list).
+# Controlled by the ZUKI_WARNINGS_AS_ERRORS option (defined in the root list).
 
 include_guard(GLOBAL)
 
-if(TARGET zukiru_warnings)
+if(TARGET zuki_warnings)
   return()
 endif()
 
-add_library(zukiru_warnings INTERFACE)
-add_library(zukiru::warnings ALIAS zukiru_warnings)
+add_library(zuki_warnings INTERFACE)
+add_library(zuki::warnings ALIAS zuki_warnings)
 
-option(ZUKIRU_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(ZUKI_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 set(_zk_msvc_warnings
   /W4
@@ -57,7 +57,7 @@ set(_zk_gcc_only_warnings
 
 if(MSVC)
   set(_zk_warnings ${_zk_msvc_warnings})
-  if(ZUKIRU_WARNINGS_AS_ERRORS)
+  if(ZUKI_WARNINGS_AS_ERRORS)
     list(APPEND _zk_warnings /WX)
   endif()
 else()
@@ -65,10 +65,10 @@ else()
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     list(APPEND _zk_warnings ${_zk_gcc_only_warnings})
   endif()
-  if(ZUKIRU_WARNINGS_AS_ERRORS)
+  if(ZUKI_WARNINGS_AS_ERRORS)
     list(APPEND _zk_warnings -Werror)
   endif()
 endif()
 
-target_compile_options(zukiru_warnings INTERFACE
+target_compile_options(zuki_warnings INTERFACE
   $<$<COMPILE_LANGUAGE:CXX>:${_zk_warnings}>)

@@ -1,8 +1,8 @@
-#include <zukiru/renderer/renderer.hpp>
+#include <zuki/renderer/renderer.hpp>
 
-#include <zukiru/ecs/world.hpp>
-#include <zukiru/render/rhi.hpp>
-#include <zukiru/scene/components.hpp>
+#include <zuki/ecs/world.hpp>
+#include <zuki/render/rhi.hpp>
+#include <zuki/scene/components.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-using namespace zukiru;
+using namespace zuki;
 
 namespace {
 

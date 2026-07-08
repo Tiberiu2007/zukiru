@@ -1,10 +1,10 @@
-#include <zukiru/jobs/job_system.hpp>
+#include <zuki/jobs/job_system.hpp>
 
-#include <zukiru/platform/thread.hpp>
+#include <zuki/platform/thread.hpp>
 
 #include <format>
 
-namespace zukiru::jobs {
+namespace zuki::jobs {
 
 JobSystem::JobSystem(u32 workerCount) {
     const u32 count = workerCount == 0 ? platform::hardwareConcurrency() : workerCount;
@@ -120,4 +120,4 @@ void JobSystem::parallelFor(usize count, const std::function<void(usize, usize)>
     parallelFor(count, chunkSize, body);
 }
 
-}  // namespace zukiru::jobs
+}  // namespace zuki::jobs

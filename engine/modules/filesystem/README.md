@@ -4,7 +4,7 @@
 mounted under virtual prefixes, and virtual paths resolve to real paths by
 longest-matching mount. Public API depends on [`core`](../core); the
 implementation uses [`platform`](../platform) for the actual file I/O. Namespace
-`zukiru::filesystem`.
+`zuki::filesystem`.
 
 ## Why a VFS
 
@@ -20,7 +20,7 @@ Always `/`-separated and treated as absolute (rooted at the VFS root),
 independent of the host OS.
 
 ```cpp
-using namespace zukiru::filesystem;
+using namespace zuki::filesystem;
 path::normalize("assets/../textures/./hero.png"); // "/textures/hero.png"
 path::normalize("/../../etc/passwd");             // "/etc/passwd"  (clamped)
 path::extension("/a/hero.png");                    // ".png"

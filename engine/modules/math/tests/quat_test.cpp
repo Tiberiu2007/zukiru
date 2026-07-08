@@ -1,9 +1,9 @@
-#include <zukiru/math/quat.hpp>
+#include <zuki/math/quat.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zukiru::math;
+using namespace zuki::math;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("identity quaternion rotates nothing", "[math][quat]") {

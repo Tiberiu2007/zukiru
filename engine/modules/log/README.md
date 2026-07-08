@@ -2,7 +2,7 @@
 
 **Layer 0 — foundation.** Structured logging with severity levels, named
 channels, and pluggable sinks. Depends only on [`core`](../core). Namespace
-`zukiru::log`.
+`zuki::log`.
 
 ## Concepts
 
@@ -21,11 +21,11 @@ channels, and pluggable sinks. Depends only on [`core`](../core). Namespace
 ## Usage
 
 ```cpp
-#include <zukiru/log/log.hpp>
-using namespace zukiru::log;
+#include <zuki/log/log.hpp>
+using namespace zuki::log;
 
-ZUKIRU_LOG_INFO("render", "loaded {} meshes in {:.1f}ms", count, ms);
-ZUKIRU_LOG_ERROR("assets", "failed to open {}", path);
+ZUKI_LOG_INFO("render", "loaded {} meshes in {:.1f}ms", count, ms);
+ZUKI_LOG_ERROR("assets", "failed to open {}", path);
 
 // Tune verbosity at runtime:
 defaultLogger().setLevel(LogLevel::Warn);              // global floor
@@ -35,7 +35,7 @@ defaultLogger().setChannelLevel("render", LogLevel::Trace);  // but be chatty he
 defaultLogger().addSink(std::make_shared<FileSink>("engine.log"));
 ```
 
-The `ZUKIRU_LOG_*(channel, fmt, ...)` macros use `std::format` and evaluate their
+The `ZUKI_LOG_*(channel, fmt, ...)` macros use `std::format` and evaluate their
 arguments **only** when the level passes both the runtime threshold and the
 compile-time floor (`kCompiledMinLevel`). That floor is `Trace` in debug builds
 and `Info` in release, so `Trace`/`Debug` calls cost nothing in shipping builds.

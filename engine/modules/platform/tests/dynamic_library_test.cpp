@@ -1,9 +1,9 @@
-#include <zukiru/platform/dynamic_library.hpp>
+#include <zuki/platform/dynamic_library.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::platform;
+using namespace zuki;
+using namespace zuki::platform;
 
 TEST_CASE("loading the current process resolves a runtime symbol",
           "[platform][dylib]") {
@@ -29,7 +29,7 @@ TEST_CASE("getFunction returns a callable pointer", "[platform][dylib]") {
     using StrlenFn = unsigned long (*)(const char*);
     auto fn = self.getFunction<StrlenFn>("strlen");
     REQUIRE(fn != nullptr);
-    REQUIRE(fn("zukiru") == 6);
+    REQUIRE(fn("zuki") == 4);
 }
 
 TEST_CASE("native extension is platform-appropriate", "[platform][dylib]") {

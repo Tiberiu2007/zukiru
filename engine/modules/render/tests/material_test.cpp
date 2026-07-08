@@ -1,11 +1,11 @@
-#include <zukiru/render/material.hpp>
+#include <zuki/render/material.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstring>
 
-using namespace zukiru;
-using namespace zukiru::render;
+using namespace zuki;
+using namespace zuki::render;
 
 namespace {
 

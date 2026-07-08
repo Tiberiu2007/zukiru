@@ -1,9 +1,9 @@
-#include <zukiru/shaderc/shader_compiler.hpp>
+#include <zuki/shaderc/shader_compiler.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::shaderc;
+using namespace zuki;
+using namespace zuki::shaderc;
 
 namespace {
 

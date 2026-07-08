@@ -1,13 +1,13 @@
 // GENERATED test data — the vertex-input "mesh" triangle shaders, compiled from
-// tests/shaders/mesh.{vert,frag} by zukiru-shaderc and embedded so the render
+// tests/shaders/mesh.{vert,frag} by zuki-shaderc and embedded so the render
 // tests supply real user geometry without a shader compiler at build time.
-// Regenerate: zukiru-shaderc tests/shaders/mesh.{vert,frag} -> spv, then
+// Regenerate: zuki-shaderc tests/shaders/mesh.{vert,frag} -> spv, then
 // tools/embed_spirv.py, then rename kTriangle*->kMesh*.
 #pragma once
 
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 inline constexpr u32 kMeshVertSpirv[] = {
     0x07230203u, 0x00010300u, 0x0008000bu, 0x00000021u, 0x00000000u, 0x00020011u,
@@ -78,4 +78,4 @@ inline constexpr u32 kMeshFragSpirv[] = {
     0x00000009u, 0x00000012u, 0x000100fdu, 0x00010038u,
 };
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

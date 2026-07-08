@@ -1,10 +1,10 @@
-// zukiru-shaderc — CLI front-end: compile a GLSL file to a .spv binary.
+// zuki-shaderc — CLI front-end: compile a GLSL file to a .spv binary.
 //
-//   zukiru-shaderc input.vert -o output.spv [--stage vertex]
+//   zuki-shaderc input.vert -o output.spv [--stage vertex]
 //
 // The stage is inferred from the input extension (.vert/.frag/...) unless given
 // with --stage. SPIR-V is written as raw little-endian 32-bit words.
-#include <zukiru/shaderc/shader_compiler.hpp>
+#include <zuki/shaderc/shader_compiler.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-using namespace zukiru;
+using namespace zuki;
 
 namespace {
 
@@ -29,7 +29,7 @@ std::optional<shaderc::Stage> parseStage(std::string_view name) {
 }
 
 int usage() {
-    std::cerr << "usage: zukiru-shaderc <input> -o <output.spv> [--stage <stage>]\n";
+    std::cerr << "usage: zuki-shaderc <input> -o <output.spv> [--stage <stage>]\n";
     return 2;
 }
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         } else if (arg == "--stage" && i + 1 < argc) {
             stage = parseStage(argv[++i]);
             if (!stage) {
-                std::cerr << "zukiru-shaderc: unknown stage\n";
+                std::cerr << "zuki-shaderc: unknown stage\n";
                 return 2;
             }
         } else if (!arg.empty() && arg.front() == '-') {
@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     if (!stage) {
         stage = shaderc::stageFromExtension(input);
         if (!stage) {
-            std::cerr << "zukiru-shaderc: cannot infer stage from '" << input
+            std::cerr << "zuki-shaderc: cannot infer stage from '" << input
                       << "'; pass --stage\n";
             return 2;
         }
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 
     std::ifstream in(input, std::ios::binary);
     if (!in) {
-        std::cerr << "zukiru-shaderc: cannot open '" << input << "'\n";
+        std::cerr << "zuki-shaderc: cannot open '" << input << "'\n";
         return 1;
     }
     std::ostringstream buffer;
@@ -87,14 +87,14 @@ int main(int argc, char** argv) {
 
     std::ofstream out(output, std::ios::binary);
     if (!out) {
-        std::cerr << "zukiru-shaderc: cannot write '" << output << "'\n";
+        std::cerr << "zuki-shaderc: cannot write '" << output << "'\n";
         return 1;
     }
     const std::vector<u32>& words = spirv.value();
     out.write(reinterpret_cast<const char*>(words.data()),
               static_cast<std::streamsize>(words.size() * sizeof(u32)));
 
-    std::cout << "zukiru-shaderc: " << input << " -> " << output << " (" << words.size()
+    std::cout << "zuki-shaderc: " << input << " -> " << output << " (" << words.size()
               << " words)\n";
     return 0;
 }

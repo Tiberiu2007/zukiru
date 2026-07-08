@@ -18,7 +18,7 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ZUKIRU_BUILD_TESTS": "ON"
+        "ZUKI_BUILD_TESTS": "ON"
       }
     },
     {
@@ -28,8 +28,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "ZUKIRU_BUILD_TESTS": "ON",
-        "ZUKIRU_WARNINGS_AS_ERRORS": "ON"
+        "ZUKI_BUILD_TESTS": "ON",
+        "ZUKI_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {

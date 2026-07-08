@@ -1,13 +1,13 @@
-#include <zukiru/app/app.hpp>
+#include <zuki/app/app.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::app;
+using namespace zuki;
+using namespace zuki::app;
 
 TEST_CASE("AppConfig has sensible defaults", "[app]") {
     const AppConfig cfg;
-    REQUIRE(cfg.window.title == "Zukiru");
+    REQUIRE(cfg.window.title == "Zuki");
     REQUIRE(cfg.device.backend == render::Backend::Vulkan);
     REQUIRE(cfg.clearColor.a == 1.0f);
 }
@@ -40,9 +40,9 @@ struct FrameLimitGame : Application {
 }  // namespace
 
 // Needs a display + GPU, so hidden by default. Run with:
-//   zukiru_app_tests "[.app]"
+//   zuki_app_tests "[.app]"
 TEST_CASE("App runs the main loop and dispatches lifecycle hooks", "[.app]") {
-    Result<std::unique_ptr<App>> appResult = App::create({.window = {.title = "Zukiru app test"}});
+    Result<std::unique_ptr<App>> appResult = App::create({.window = {.title = "Zuki app test"}});
     if (appResult.isErr()) {
         FAIL(appResult.error().message);
     }

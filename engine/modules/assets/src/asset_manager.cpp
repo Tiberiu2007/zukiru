@@ -1,13 +1,13 @@
-#include <zukiru/assets/asset_manager.hpp>
+#include <zuki/assets/asset_manager.hpp>
 
-#include <zukiru/filesystem/path.hpp>
-#include <zukiru/filesystem/virtual_file_system.hpp>
-#include <zukiru/jobs/job_system.hpp>
+#include <zuki/filesystem/path.hpp>
+#include <zuki/filesystem/virtual_file_system.hpp>
+#include <zuki/jobs/job_system.hpp>
 
 #include <utility>
 #include <vector>
 
-namespace zukiru::assets {
+namespace zuki::assets {
 namespace {
 
 // Lowercase an extension and drop any leading dot, so ".PNG", "PNG" and "png"
@@ -179,4 +179,4 @@ bool AssetManager::isCached(std::string_view path) const {
     return records_.contains(assetIdFromPath(normalizePath(path)));
 }
 
-}  // namespace zukiru::assets
+}  // namespace zuki::assets

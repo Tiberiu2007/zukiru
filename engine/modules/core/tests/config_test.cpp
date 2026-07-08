@@ -1,21 +1,21 @@
-#include <zukiru/core/config.hpp>
+#include <zuki/core/config.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
+using namespace zuki;
 
 TEST_CASE("set / get round-trips typed values", "[core][config]") {
     Config cfg;
     cfg.setInt("width", 1920);
     cfg.setFloat("scale", 1.5);
     cfg.setBool("vsync", true);
-    cfg.setString("title", "Zukiru");
+    cfg.setString("title", "Zuki");
 
     REQUIRE(cfg.has("width"));
     REQUIRE(cfg.getInt("width") == 1920);
     REQUIRE(cfg.getFloat("scale").value() == 1.5);
     REQUIRE(cfg.getBool("vsync") == true);
-    REQUIRE(cfg.getString("title") == "Zukiru");
+    REQUIRE(cfg.getString("title") == "Zuki");
     REQUIRE(cfg.size() == 4);
 }
 

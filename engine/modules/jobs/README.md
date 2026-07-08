@@ -3,13 +3,13 @@
 **Layer 1 — services.** A thread-pool job system: fire-and-forget tasks, futures,
 and a blocking parallel-for. Public API depends only on [`core`](../core); the
 implementation uses [`platform`](../platform) for hardware-thread detection and
-worker naming. Namespace `zukiru::jobs`.
+worker naming. Namespace `zuki::jobs`.
 
 ## API
 
 ```cpp
-#include <zukiru/jobs/jobs.hpp>
-using namespace zukiru::jobs;
+#include <zuki/jobs/jobs.hpp>
+using namespace zuki::jobs;
 
 JobSystem jobs;                       // one worker per hardware thread (or JobSystem{n})
 

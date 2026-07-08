@@ -1,16 +1,16 @@
-#include <zukiru/platform/window.hpp>
+#include <zuki/platform/window.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <memory>
 #include <type_traits>
 
-using namespace zukiru;
-using namespace zukiru::platform;
+using namespace zuki;
+using namespace zuki::platform;
 
 TEST_CASE("WindowConfig has sensible defaults", "[platform][window]") {
     const WindowConfig cfg;
-    REQUIRE(cfg.title == "Zukiru");
+    REQUIRE(cfg.title == "Zuki");
     REQUIRE(cfg.width == 1280);
     REQUIRE(cfg.height == 720);
     REQUIRE(cfg.mode == WindowMode::Windowed);
@@ -42,10 +42,10 @@ TEST_CASE("WindowEvent defaults are inert", "[platform][window]") {
 
 // Real window creation needs a display and a window manager, so it is hidden by
 // default (Catch2 runs tests tagged with a leading '.' only when asked). Run it
-// on a machine with a display via:  zukiru_platform_tests "[.window]"
+// on a machine with a display via:  zuki_platform_tests "[.window]"
 TEST_CASE("open a real window and pump events", "[.window]") {
     Result<std::unique_ptr<Window>> result =
-        createWindow({.title = "Zukiru window test", .width = 640, .height = 480});
+        createWindow({.title = "Zuki window test", .width = 640, .height = 480});
     REQUIRE(result.isOk());
 
     std::unique_ptr<Window>& window = result.value();
@@ -53,7 +53,7 @@ TEST_CASE("open a real window and pump events", "[.window]") {
     REQUIRE(window->nativeDisplay() != nullptr);
     REQUIRE_FALSE(window->shouldClose());
 
-    window->setTitle("Zukiru window test (renamed)");
+    window->setTitle("Zuki window test (renamed)");
     for (int i = 0; i < 5; ++i) {
         window->pollEvents();
     }

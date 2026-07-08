@@ -1,10 +1,10 @@
-#include <zukiru/ecs/world.hpp>
+#include <zuki/ecs/world.hpp>
 
-#include <zukiru/core/assert.hpp>
+#include <zuki/core/assert.hpp>
 
 #include <algorithm>
 
-namespace zukiru::ecs {
+namespace zuki::ecs {
 
 using detail::Archetype;
 
@@ -102,7 +102,7 @@ void* World::getComponent(Entity entity, ComponentId id) const {
 }
 
 std::pair<void*, bool> World::addComponentRaw(Entity entity, const ComponentInfo& info) {
-    ZUKIRU_ENSURE_MSG(validate(entity), "add() on a dead or invalid entity");
+    ZUKI_ENSURE_MSG(validate(entity), "add() on a dead or invalid entity");
     EntityRecord& rec = records_[entity.index];
     Archetype* src = rec.archetype;
 
@@ -168,4 +168,4 @@ bool World::removeComponent(Entity entity, ComponentId id) {
     return true;
 }
 
-}  // namespace zukiru::ecs
+}  // namespace zuki::ecs

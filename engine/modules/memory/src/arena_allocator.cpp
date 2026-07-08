@@ -1,17 +1,17 @@
-#include <zukiru/memory/arena_allocator.hpp>
+#include <zuki/memory/arena_allocator.hpp>
 
-#include <zukiru/core/assert.hpp>
+#include <zuki/core/assert.hpp>
 
 #include <cstdlib>
 #include <utility>
 
-namespace zukiru::memory {
+namespace zuki::memory {
 
 ArenaAllocator::ArenaAllocator(usize capacityBytes)
     : buffer_(static_cast<byte*>(std::malloc(capacityBytes))),
       capacity_(buffer_ != nullptr ? capacityBytes : 0),
       ownsBuffer_(buffer_ != nullptr) {
-    ZUKIRU_ENSURE_MSG(capacityBytes == 0 || buffer_ != nullptr, "arena: out of memory");
+    ZUKI_ENSURE_MSG(capacityBytes == 0 || buffer_ != nullptr, "arena: out of memory");
 }
 
 ArenaAllocator::ArenaAllocator(void* buffer, usize capacityBytes) noexcept
@@ -56,7 +56,7 @@ ArenaAllocator& ArenaAllocator::operator=(ArenaAllocator&& other) noexcept {
 }
 
 void* ArenaAllocator::allocate(usize size, usize alignment) noexcept {
-    ZUKIRU_ASSERT(isPowerOfTwo(alignment));
+    ZUKI_ASSERT(isPowerOfTwo(alignment));
     if (buffer_ == nullptr || size == 0) return nullptr;
 
     const uptr base = reinterpret_cast<uptr>(buffer_);
@@ -68,4 +68,4 @@ void* ArenaAllocator::allocate(usize size, usize alignment) noexcept {
     return reinterpret_cast<void*>(aligned);
 }
 
-}  // namespace zukiru::memory
+}  // namespace zuki::memory

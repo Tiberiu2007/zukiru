@@ -1,8 +1,8 @@
-#include <zukiru/core/string_utils.hpp>
+#include <zuki/core/string_utils.hpp>
 
 #include <cctype>
 
-namespace zukiru::strings {
+namespace zuki::strings {
 namespace {
 
 constexpr std::string_view kWhitespace = " \t\n\r\f\v";
@@ -125,4 +125,4 @@ std::string replaceAll(std::string_view s, std::string_view from, std::string_vi
     return out;
 }
 
-}  // namespace zukiru::strings
+}  // namespace zuki::strings

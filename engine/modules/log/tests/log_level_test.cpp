@@ -1,8 +1,8 @@
-#include <zukiru/log/log_level.hpp>
+#include <zuki/log/log_level.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru::log;
+using namespace zuki::log;
 
 TEST_CASE("levels are ordered by severity", "[log][level]") {
     STATIC_REQUIRE(LogLevel::Trace < LogLevel::Debug);

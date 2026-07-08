@@ -2,16 +2,16 @@
 
 **Layer 0 — foundation.** Engine-tuned data structures. Header-only. Depends on
 [`core`](../core) and [`memory`](../memory) (the slot map reuses
-`memory::Handle`). Namespace `zukiru::containers`.
+`memory::Handle`). Namespace `zuki::containers`.
 
 ## What's here
 
 | Header | Type | Use it for |
 |--------|------|-----------|
-| `<zukiru/containers/sparse_set.hpp>` | `SparseSet<T>` | Dense u32-keyed storage with O(1) insert/remove/lookup and cache-friendly iteration. The backbone of ECS component pools. |
-| `<zukiru/containers/slot_map.hpp>` | `SlotMap<T, Tag>` | Stable, generational handles to values — safe weak references that detect use-after-remove. |
-| `<zukiru/containers/ring_buffer.hpp>` | `RingBuffer<T>` | Fixed-capacity circular FIFO (bounded queues, history, producer/consumer). |
-| `<zukiru/containers/containers.hpp>` | — | Umbrella header. |
+| `<zuki/containers/sparse_set.hpp>` | `SparseSet<T>` | Dense u32-keyed storage with O(1) insert/remove/lookup and cache-friendly iteration. The backbone of ECS component pools. |
+| `<zuki/containers/slot_map.hpp>` | `SlotMap<T, Tag>` | Stable, generational handles to values — safe weak references that detect use-after-remove. |
+| `<zuki/containers/ring_buffer.hpp>` | `RingBuffer<T>` | Fixed-capacity circular FIFO (bounded queues, history, producer/consumer). |
+| `<zuki/containers/containers.hpp>` | — | Umbrella header. |
 
 ## SparseSet
 

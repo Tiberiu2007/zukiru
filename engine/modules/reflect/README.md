@@ -4,13 +4,13 @@
 fields once, then walk them generically at runtime. This is the shared type
 information that powers **serialization** and the **editor inspector** — so what
 the editor shows and what ships never drift apart. Header-only, depends only on
-[`core`](../core). Namespace `zukiru::reflect`.
+[`core`](../core). Namespace `zuki::reflect`.
 
 ## Describing a type
 
 ```cpp
-#include <zukiru/reflect/reflect.hpp>
-using namespace zukiru::reflect;
+#include <zuki/reflect/reflect.hpp>
+using namespace zuki::reflect;
 
 struct Transform { Vec3 position; Quat rotation; f32 scale; };
 

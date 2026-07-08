@@ -1,8 +1,8 @@
-#include <zukiru/memory/tracking.hpp>
+#include <zuki/memory/tracking.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru::memory;
+using namespace zuki::memory;
 
 TEST_CASE("tracker accounts for live bytes and counts", "[memory][tracking]") {
     MemoryTracker tracker;

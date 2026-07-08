@@ -2,7 +2,7 @@
 
 **Layer 0 — foundation.** The OS abstraction layer: timing, threads, dynamic
 libraries, file I/O, and the windowing surface. Depends only on
-[`core`](../core). Namespace `zukiru::platform`.
+[`core`](../core). Namespace `zuki::platform`.
 
 Everything OS-specific that the rest of the engine needs should funnel through
 here, so higher layers stay portable.
@@ -11,12 +11,12 @@ here, so higher layers stay portable.
 
 | Header | Provides |
 |--------|----------|
-| `<zukiru/platform/clock.hpp>` | `sleepFor`/`sleepMilliseconds`, high-res `performanceCounter`/`performanceFrequency`, `unixTimeSeconds`/`unixTimeMilliseconds`. |
-| `<zukiru/platform/thread.hpp>` | `hardwareConcurrency`, `currentThreadId`, `yieldThread`, `setThreadName`/`threadName`. |
-| `<zukiru/platform/dynamic_library.hpp>` | `DynamicLibrary` — load `.so`/`.dll`/`.dylib`, resolve symbols/functions. |
-| `<zukiru/platform/file_io.hpp>` | `readFile`/`readFileBinary`/`writeFile` (Result-based), `fileExists`/`fileSize`/`removeFile`. |
-| `<zukiru/platform/window.hpp>` | `Window` interface + `WindowConfig` (**backend deferred** — see below). |
-| `<zukiru/platform/platform.hpp>` | Umbrella header. |
+| `<zuki/platform/clock.hpp>` | `sleepFor`/`sleepMilliseconds`, high-res `performanceCounter`/`performanceFrequency`, `unixTimeSeconds`/`unixTimeMilliseconds`. |
+| `<zuki/platform/thread.hpp>` | `hardwareConcurrency`, `currentThreadId`, `yieldThread`, `setThreadName`/`threadName`. |
+| `<zuki/platform/dynamic_library.hpp>` | `DynamicLibrary` — load `.so`/`.dll`/`.dylib`, resolve symbols/functions. |
+| `<zuki/platform/file_io.hpp>` | `readFile`/`readFileBinary`/`writeFile` (Result-based), `fileExists`/`fileSize`/`removeFile`. |
+| `<zuki/platform/window.hpp>` | `Window` interface + `WindowConfig` (**backend deferred** — see below). |
+| `<zuki/platform/platform.hpp>` | Umbrella header. |
 
 ## Timing
 
@@ -52,14 +52,14 @@ virtual-filesystem layer with mount points is a separate Layer-1 module
 - otherwise a clear `Error`.
 
 ```cpp
-auto win = platform::createWindow({.title = "Zukiru", .width = 1280, .height = 720});
+auto win = platform::createWindow({.title = "Zuki", .width = 1280, .height = 720});
 while (!win.value()->shouldClose()) {
     win.value()->pollEvents();
     for (const platform::WindowEvent& e : win.value()->events()) { /* ... */ }
 }
 ```
 
-Backends are opt-out via the `ZUKIRU_WINDOW_X11` / `ZUKIRU_WINDOW_WAYLAND` CMake
+Backends are opt-out via the `ZUKI_WINDOW_X11` / `ZUKI_WINDOW_WAYLAND` CMake
 options (default ON when their libraries are found). `nativeHandle()` /
 `nativeDisplay()` expose the raw surface + display for a future Vulkan backend.
 Feed events into the `input` module with `input/platform_bridge.hpp`. See
@@ -69,7 +69,7 @@ Feed events into the `input` module with `input/platform_bridge.hpp`. See
 
 Implemented and tested on Linux (X11 exercised against a live display; Wayland
 builds/links and is validated on a Wayland session). macOS paths exist for
-threads/dylib/IO; Windows paths are written behind `ZUKIRU_OS_WINDOWS` but not yet
+threads/dylib/IO; Windows paths are written behind `ZUKI_OS_WINDOWS` but not yet
 built/verified. **Windowing on Win32 (Cocoa) is future work.** Thread naming is
 POSIX-only for now (`setThreadName` returns false elsewhere).
 

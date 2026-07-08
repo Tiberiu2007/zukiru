@@ -1,9 +1,9 @@
-#include <zukiru/ecs/archetype.hpp>
+#include <zuki/ecs/archetype.hpp>
 
 #include <new>
 #include <utility>
 
-namespace zukiru::ecs::detail {
+namespace zuki::ecs::detail {
 namespace {
 
 [[nodiscard]] std::byte* allocRaw(usize bytes, usize alignment) {
@@ -98,4 +98,4 @@ Entity Archetype::removeRow(usize row) {
     return relocated;
 }
 
-}  // namespace zukiru::ecs::detail
+}  // namespace zuki::ecs::detail

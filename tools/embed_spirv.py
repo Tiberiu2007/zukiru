@@ -36,17 +36,17 @@ def main():
     v, f = read_words(vert), read_words(frag)
     header = (
         "// GENERATED — do not edit. The built-in RGB triangle shaders, compiled from\n"
-        "// src/vulkan/shaders/triangle.{vert,frag} to SPIR-V by zukiru-shaderc and embedded\n"
+        "// src/vulkan/shaders/triangle.{vert,frag} to SPIR-V by zuki-shaderc and embedded\n"
         "// here so the render module needs no shader compiler at build or run time.\n"
         "//\n"
-        "// Regenerate (from repo root, with -DZUKIRU_BUILD_TOOLS=ON built) via the recipe\n"
+        "// Regenerate (from repo root, with -DZUKI_BUILD_TOOLS=ON built) via the recipe\n"
         "// in src/vulkan/shaders/README.md.\n"
         "#pragma once\n\n"
-        "#include <zukiru/core/types.hpp>\n\n"
-        "namespace zukiru::render {\n\n"
+        "#include <zuki/core/types.hpp>\n\n"
+        "namespace zuki::render {\n\n"
         f"{emit_array('kTriangleVertSpirv', v)}\n\n"
         f"{emit_array('kTriangleFragSpirv', f)}\n\n"
-        "}  // namespace zukiru::render\n"
+        "}  // namespace zuki::render\n"
     )
     with open(out, "w") as o:
         o.write(header)

@@ -1,12 +1,12 @@
-#include <zukiru/event/event_bus.hpp>
+#include <zuki/event/event_bus.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::event;
+using namespace zuki;
+using namespace zuki::event;
 
 namespace {
 struct Damage {

@@ -1,4 +1,4 @@
-#include <zukiru/containers/sparse_set.hpp>
+#include <zuki/containers/sparse_set.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -6,8 +6,8 @@
 #include <numeric>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::containers;
+using namespace zuki;
+using namespace zuki::containers;
 
 TEST_CASE("insert / contains / get", "[containers][sparse_set]") {
     SparseSet<int> set;

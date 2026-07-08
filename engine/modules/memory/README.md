@@ -1,7 +1,7 @@
 # memory
 
 **Layer 0 — foundation.** Custom allocators, resource handles, and allocation
-tracking. Depends only on [`core`](../core). Namespace `zukiru::memory`.
+tracking. Depends only on [`core`](../core). Namespace `zuki::memory`.
 
 Games live and die by memory layout. These allocators trade the generality of
 `new`/`delete` for speed and predictability: contiguous storage, no
@@ -11,13 +11,13 @@ fragmentation, and O(1) (often O(0)) frees.
 
 | Header | Provides |
 |--------|----------|
-| `<zukiru/memory/alignment.hpp>` | `alignUp`/`alignDown`/`isAligned`/`isPowerOfTwo`, `alignPointer`, `kDefaultAlignment`. |
-| `<zukiru/memory/arena_allocator.hpp>` | `ArenaAllocator` — linear "bump" allocator; `reset()` frees everything at once. |
-| `<zukiru/memory/stack_allocator.hpp>` | `StackAllocator` — linear with `mark()`/`freeToMarker()` LIFO rollback. |
-| `<zukiru/memory/pool_allocator.hpp>` | `PoolAllocator` — fixed-size blocks, O(1) `allocate`/`free`, zero fragmentation. |
-| `<zukiru/memory/handle.hpp>` | `Handle<Tag>` — index + generation, type-safe, detects stale references. |
-| `<zukiru/memory/tracking.hpp>` | `MemoryTracker` — lock-free live/peak/total byte & allocation counters. |
-| `<zukiru/memory/memory.hpp>` | Umbrella header. |
+| `<zuki/memory/alignment.hpp>` | `alignUp`/`alignDown`/`isAligned`/`isPowerOfTwo`, `alignPointer`, `kDefaultAlignment`. |
+| `<zuki/memory/arena_allocator.hpp>` | `ArenaAllocator` — linear "bump" allocator; `reset()` frees everything at once. |
+| `<zuki/memory/stack_allocator.hpp>` | `StackAllocator` — linear with `mark()`/`freeToMarker()` LIFO rollback. |
+| `<zuki/memory/pool_allocator.hpp>` | `PoolAllocator` — fixed-size blocks, O(1) `allocate`/`free`, zero fragmentation. |
+| `<zuki/memory/handle.hpp>` | `Handle<Tag>` — index + generation, type-safe, detects stale references. |
+| `<zuki/memory/tracking.hpp>` | `MemoryTracker` — lock-free live/peak/total byte & allocation counters. |
+| `<zuki/memory/memory.hpp>` | Umbrella header. |
 
 ## Choosing an allocator
 
@@ -34,8 +34,8 @@ yourself (or keep them trivially destructible). Each can either own a heap buffe
 or borrow an external one.
 
 ```cpp
-#include <zukiru/memory/memory.hpp>
-using namespace zukiru::memory;
+#include <zuki/memory/memory.hpp>
+using namespace zuki::memory;
 
 ArenaAllocator frame(1 << 20);            // 1 MiB scratch
 auto* verts = frame.allocate<Vertex>(1024);

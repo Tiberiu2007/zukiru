@@ -1,4 +1,4 @@
-#include <zukiru/filesystem/virtual_file_system.hpp>
+#include <zuki/filesystem/virtual_file_system.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -8,8 +8,8 @@
 #include <random>
 #include <string>
 
-using namespace zukiru;
-using namespace zukiru::filesystem;
+using namespace zuki;
+using namespace zuki::filesystem;
 namespace stdfs = std::filesystem;
 
 namespace {
@@ -21,7 +21,7 @@ struct TempDir {
         static std::atomic<u64> counter{0};
         std::random_device rd;
         path = stdfs::temp_directory_path() /
-               ("zukiru_vfs_" + std::to_string(rd()) + "_" + std::to_string(counter.fetch_add(1)));
+               ("zuki_vfs_" + std::to_string(rd()) + "_" + std::to_string(counter.fetch_add(1)));
         stdfs::create_directories(path);
     }
     ~TempDir() {

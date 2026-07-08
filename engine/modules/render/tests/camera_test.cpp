@@ -1,10 +1,10 @@
-#include <zukiru/render/camera.hpp>
+#include <zuki/render/camera.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zukiru;
-using namespace zukiru::render;
+using namespace zuki;
+using namespace zuki::render;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("default camera is identity", "[render][camera]") {

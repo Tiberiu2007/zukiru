@@ -3,12 +3,12 @@
 // recording so callers draw their own geometry. See docs/adr/0006.
 #include "vulkan/vulkan_device.hpp"
 
-#include <zukiru/platform/window.hpp>
+#include <zuki/platform/window.hpp>
 
-#if ZUKIRU_RENDER_VK_XLIB
+#if ZUKI_RENDER_VK_XLIB
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
-#if ZUKIRU_RENDER_VK_WAYLAND
+#if ZUKI_RENDER_VK_WAYLAND
 #define VK_USE_PLATFORM_WAYLAND_KHR
 #endif
 #include <vulkan/vulkan.h>
@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-namespace zukiru::render {
+namespace zuki::render {
 namespace {
 
 constexpr u32 kFramesInFlight = 2;
@@ -651,21 +651,21 @@ private:
     bool createInstance() {
         VkApplicationInfo app{};
         app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        app.pApplicationName = "Zukiru";
+        app.pApplicationName = "Zuki";
         app.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-        app.pEngineName = "Zukiru";
+        app.pEngineName = "Zuki";
         app.engineVersion = VK_MAKE_VERSION(0, 1, 0);
         app.apiVersion = VK_API_VERSION_1_1;
 
         std::vector<const char*> extensions{VK_KHR_SURFACE_EXTENSION_NAME};
         switch (window_->nativeBackend()) {
             case platform::NativeBackend::X11:
-#if ZUKIRU_RENDER_VK_XLIB
+#if ZUKI_RENDER_VK_XLIB
                 extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 #endif
                 break;
             case platform::NativeBackend::Wayland:
-#if ZUKIRU_RENDER_VK_WAYLAND
+#if ZUKI_RENDER_VK_WAYLAND
                 extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
                 break;
@@ -701,7 +701,7 @@ private:
     // --- Surface ---------------------------------------------------------
     bool createSurface(const platform::Window& window) {
         switch (window.nativeBackend()) {
-#if ZUKIRU_RENDER_VK_XLIB
+#if ZUKI_RENDER_VK_XLIB
             case platform::NativeBackend::X11: {
                 // Own Display connection (closed before instance destroy) to dodge
                 // the NVIDIA XCloseDisplay-hook-into-unloaded-ICD crash.
@@ -719,7 +719,7 @@ private:
                 return true;
             }
 #endif
-#if ZUKIRU_RENDER_VK_WAYLAND
+#if ZUKI_RENDER_VK_WAYLAND
             case platform::NativeBackend::Wayland: {
                 VkWaylandSurfaceCreateInfoKHR info{};
                 info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
@@ -1621,7 +1621,7 @@ private:
         if (renderPass_ != VK_NULL_HANDLE) vkDestroyRenderPass(device_, renderPass_, nullptr);
         if (device_ != VK_NULL_HANDLE) vkDestroyDevice(device_, nullptr);
         if (surface_ != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance_, surface_, nullptr);
-#if ZUKIRU_RENDER_VK_XLIB
+#if ZUKI_RENDER_VK_XLIB
         if (surfaceDisplayX11_ != nullptr) {
             XCloseDisplay(static_cast<Display*>(surfaceDisplayX11_));
             surfaceDisplayX11_ = nullptr;
@@ -1702,4 +1702,4 @@ Result<std::unique_ptr<Device>> createVulkanDevice(const platform::Window& windo
     return Ok(std::unique_ptr<Device>{std::move(device)});
 }
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

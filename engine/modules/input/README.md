@@ -7,7 +7,7 @@
 - **`ActionMap`** — rebindable, named actions (`"Jump"`, `"MoveX"`) layered over
   physical inputs, so gameplay code never hard-codes a key.
 
-Header-only, depends only on [`core`](../core). Namespace `zukiru::input`.
+Header-only, depends only on [`core`](../core). Namespace `zuki::input`.
 
 ## A sink, not a poller
 
@@ -21,8 +21,8 @@ and calls the `on*()` methods.
 ## Per-frame flow
 
 ```cpp
-#include <zukiru/input/input.hpp>
-using namespace zukiru::input;
+#include <zuki/input/input.hpp>
+using namespace zuki::input;
 
 InputState state;
 

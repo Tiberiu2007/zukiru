@@ -1,9 +1,9 @@
-#include <zukiru/containers/ring_buffer.hpp>
+#include <zuki/containers/ring_buffer.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::containers;
+using namespace zuki;
+using namespace zuki::containers;
 
 TEST_CASE("push / pop is FIFO", "[containers][ring_buffer]") {
     RingBuffer<int> ring(4);

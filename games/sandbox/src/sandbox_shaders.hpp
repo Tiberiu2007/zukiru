@@ -1,15 +1,15 @@
 // GENERATED — the sandbox's scene shaders (shaders/scene.{vert,frag}) compiled to
-// SPIR-V by zukiru-shaderc and embedded so the demo needs no shader compiler at
+// SPIR-V by zuki-shaderc and embedded so the demo needs no shader compiler at
 // build or run time. Vertex reads a per-frame camera uniform { mat4 viewProj }
 // (set0/binding0) + a per-draw push constant { mat4 model }; fragment samples a
 // texture (set0/binding1) with a directional light.
 #pragma once
 
-#include <zukiru/core/types.hpp>
+#include <zuki/core/types.hpp>
 
 namespace sandbox {
 
-using zukiru::u32;
+using zuki::u32;
 
 inline constexpr u32 kSceneVertSpirv[] = {
     0x07230203u, 0x00010300u, 0x0008000bu, 0x0000003fu, 0x00000000u, 0x00020011u,

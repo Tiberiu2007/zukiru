@@ -1,12 +1,12 @@
-#include <zukiru/memory/pool_allocator.hpp>
+#include <zuki/memory/pool_allocator.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <set>
 #include <vector>
 
-using namespace zukiru;
-using namespace zukiru::memory;
+using namespace zuki;
+using namespace zuki::memory;
 
 TEST_CASE("pool block size is rounded up for pointer + alignment", "[memory][pool]") {
     PoolAllocator pool(1, 4);  // 1-byte request rounds up to >= sizeof(void*)

@@ -1,9 +1,9 @@
-#include <zukiru/memory/stack_allocator.hpp>
+#include <zuki/memory/stack_allocator.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace zukiru;
-using namespace zukiru::memory;
+using namespace zuki;
+using namespace zuki::memory;
 
 TEST_CASE("stack allocates and frees to a marker (LIFO)", "[memory][stack]") {
     StackAllocator stack(1024);

@@ -2,12 +2,12 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-06
-- **Deciders:** Zukiru project
+- **Deciders:** Zuki project
 - **Supersedes:** —
 
 ## Context
 
-Zukiru is a game engine (see
+Zuki is a game engine (see
 [PROJECT_STRUCTURE.md](../../agents/PROJECT_STRUCTURE.md)) intended to be *built
 on*: games, tools, and third parties will link its libraries, and many of those
 downstream projects will be closed-source and commercial. An engine's license is
@@ -16,8 +16,8 @@ requires the consent of every contributor — so it needs to be chosen deliberat
 
 Requirements:
 
-1. **Permissive** — must not force games built with Zukiru to be open-sourced.
-   This rules out GPL, and makes LGPL/MPL awkward given Zukiru links as static
+1. **Permissive** — must not force games built with Zuki to be open-sourced.
+   This rules out GPL, and makes LGPL/MPL awkward given Zuki links as static
    libraries (see [PROJECT_STRUCTURE.md](../../agents/PROJECT_STRUCTURE.md) §3).
 2. **Patent protection** — an explicit patent grant is desirable to protect both
    contributors and users.
@@ -36,19 +36,19 @@ the terms and the inbound-contribution rule.
   Godot uses).
 - **Apache-2.0** adds an explicit patent grant and contribution terms.
 - Offering both is the well-trodden Rust/game-engine pattern (e.g. Bevy) and lets
-  Zukiru interoperate cleanly with code under either license.
+  Zuki interoperate cleanly with code under either license.
 
 Contributions are inbound under the same dual license (Apache-2.0 §5 inbound=outbound,
 stated explicitly in the README's Contribution section), so no separate CLA is
 required to keep the licensing coherent.
 
-Copyright is attributed to "Zukiru contributors" rather than a single individual,
+Copyright is attributed to "Zuki contributors" rather than a single individual,
 so the notice does not need editing as the contributor set grows.
 
 ## Consequences
 
 **Positive**
-- Anyone can ship a game with Zukiru — commercial or closed-source — with no
+- Anyone can ship a game with Zuki — commercial or closed-source — with no
   copyleft obligations.
 - The Apache-2.0 option carries an explicit patent grant; the MIT option keeps the
   simplest-possible path available.
@@ -70,5 +70,5 @@ so the notice does not need editing as the contributor set grows.
 - **zlib** — very simple and popular in C/C++ game-dev, but no patent grant and
   less common as a project-wide license than MIT/Apache.
 - **GPL / LGPL / MPL** — copyleft; rejected because it would impose source
-  obligations on games built with Zukiru (fatal for engine adoption), with static
+  obligations on games built with Zuki (fatal for engine adoption), with static
   linking making the weaker variants especially awkward.

@@ -1,14 +1,14 @@
-#include <zukiru/core/assert.hpp>
+#include <zuki/core/assert.hpp>
 
 #include <cstdio>
 #include <cstdlib>
 
-namespace zukiru {
+namespace zuki {
 namespace {
 
 // Default handler: report to stderr and abort.
 void defaultHandler(const SourceLocation& where, std::string_view expr, std::string_view message) {
-    std::fputs("\n=== Zukiru assertion failed ===\n", stderr);
+    std::fputs("\n=== Zuki assertion failed ===\n", stderr);
     if (!expr.empty()) {
         std::fprintf(stderr, "  condition: %.*s\n", static_cast<int>(expr.size()), expr.data());
     }
@@ -41,4 +41,4 @@ void assertFail(const SourceLocation& where, std::string_view expr, std::string_
 }
 
 }  // namespace detail
-}  // namespace zukiru
+}  // namespace zuki

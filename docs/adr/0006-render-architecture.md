@@ -50,7 +50,7 @@ date/suboptimal or `resize()` triggers swapchain recreation.
 
 ### Dependencies & build
 
-- **Vulkan headers** via `zukiru_require_vulkan()`: a system SDK if present, else
+- **Vulkan headers** via `zuki_require_vulkan()`: a system SDK if present, else
   **Vulkan-Headers** through FetchContent (the box ships only `libvulkan.so.1`).
   The loader is found even when only the versioned soname exists.
 - Vulkan is a **private** dependency of `render` — public consumers see only the

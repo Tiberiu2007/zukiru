@@ -1,9 +1,9 @@
-#include <zukiru/core/time.hpp>
+#include <zuki/core/time.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-using namespace zukiru;
+using namespace zuki;
 using Catch::Matchers::WithinAbs;
 
 TEST_CASE("Duration converts between units", "[core][time]") {

@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-namespace zukiru::platform {
+namespace zuki::platform {
 namespace {
 
 using XWindowHandle = ::Window;  // Xlib's Window (an XID); distinct from our Window class
@@ -237,4 +237,4 @@ Result<std::unique_ptr<Window>> createX11Window(const WindowConfig& config) {
         std::make_unique<X11Window>(display, window, wmDeleteWindow, config.width, config.height)});
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

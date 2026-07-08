@@ -1,8 +1,8 @@
-# Zukiru static-analysis + naming enforcement. See agents/PROJECT_STRUCTURE.md §5.
+# Zuki static-analysis + naming enforcement. See agents/PROJECT_STRUCTURE.md §5.
 #
 # Naming (locked): types PascalCase · functions/vars camelCase · private members
 # trailing '_' · constants k-prefixed PascalCase · macros UPPER_CASE · namespace
-# lower_case (zukiru::...). readability-identifier-naming turns these into warnings.
+# lower_case (zuki::...). readability-identifier-naming turns these into warnings.
 ---
 Checks: >
   bugprone-*,
@@ -54,4 +54,4 @@ CheckOptions:
   - { key: readability-identifier-naming.StaticConstantPrefix,   value: 'k' }
 
   - { key: readability-identifier-naming.MacroDefinitionCase,    value: UPPER_CASE }
-  - { key: readability-identifier-naming.MacroDefinitionPrefix,  value: 'ZUKIRU_' }
+  - { key: readability-identifier-naming.MacroDefinitionPrefix,  value: 'ZUKI_' }

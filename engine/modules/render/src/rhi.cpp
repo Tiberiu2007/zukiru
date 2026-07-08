@@ -1,8 +1,8 @@
-#include <zukiru/render/rhi.hpp>
+#include <zuki/render/rhi.hpp>
 
 #include "vulkan/vulkan_device.hpp"
 
-namespace zukiru::render {
+namespace zuki::render {
 
 Result<std::unique_ptr<Device>> createDevice(const platform::Window& window,
                                              const DeviceConfig& config) {
@@ -13,4 +13,4 @@ Result<std::unique_ptr<Device>> createDevice(const platform::Window& window,
     return Err(Error{"render: unsupported backend"});
 }
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

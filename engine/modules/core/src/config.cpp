@@ -1,11 +1,11 @@
-#include <zukiru/core/config.hpp>
+#include <zuki/core/config.hpp>
 
-#include <zukiru/core/string_utils.hpp>
+#include <zuki/core/string_utils.hpp>
 
 #include <charconv>
 #include <format>
 
-namespace zukiru {
+namespace zuki {
 
 bool Config::has(std::string_view key) const {
     return entries_.find(key) != entries_.end();
@@ -123,4 +123,4 @@ std::string Config::toString() const {
     return out;
 }
 
-}  // namespace zukiru
+}  // namespace zuki

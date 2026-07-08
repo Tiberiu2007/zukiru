@@ -25,12 +25,12 @@
 #include <cstring>
 #include <string>
 
-namespace zukiru::platform {
+namespace zuki::platform {
 namespace {
 
 // Create an anonymous, memory-backed file of `size` bytes for a wl_shm pool.
 [[nodiscard]] int createShmFile(usize size) {
-    int fd = memfd_create("zukiru-wl-shm", MFD_CLOEXEC);
+    int fd = memfd_create("zuki-wl-shm", MFD_CLOEXEC);
     if (fd < 0) return -1;
     if (ftruncate(fd, static_cast<off_t>(size)) < 0) {
         close(fd);
@@ -79,7 +79,7 @@ public:
         xdgToplevel_ = xdg_surface_get_toplevel(xdgSurface_);
         xdg_toplevel_add_listener(xdgToplevel_, &kXdgToplevelListener, this);
         xdg_toplevel_set_title(xdgToplevel_, title_.c_str());
-        xdg_toplevel_set_app_id(xdgToplevel_, "zukiru");
+        xdg_toplevel_set_app_id(xdgToplevel_, "zuki");
 
         wl_surface_commit(surface_);   // initial commit → triggers first configure
         wl_display_roundtrip(display_);  // process configure (attaches the buffer)
@@ -441,4 +441,4 @@ Result<std::unique_ptr<Window>> createWaylandWindow(const WindowConfig& config) 
     return Ok(std::unique_ptr<Window>{std::move(window)});
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

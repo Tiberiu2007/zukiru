@@ -1,5 +1,5 @@
-# Zukiru code style. See agents/PROJECT_STRUCTURE.md §5.
-# Types PascalCase, functions/vars camelCase, files snake_case, namespace zukiru::.
+# Zuki code style. See agents/PROJECT_STRUCTURE.md §5.
+# Types PascalCase, functions/vars camelCase, files snake_case, namespace zuki::.
 ---
 Language:        Cpp
 BasedOnStyle:    Google
@@ -26,7 +26,7 @@ IncludeBlocks:   Regroup
 SortIncludes:    CaseSensitive
 IncludeCategories:
   # This module's own public header (paired with the .cpp) — highest priority.
-  - Regex:    '^<zukiru/'
+  - Regex:    '^<zuki/'
     Priority: 2
   # Other project headers.
   - Regex:    '^"'

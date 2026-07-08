@@ -1,10 +1,10 @@
-#include <zukiru/memory/pool_allocator.hpp>
+#include <zuki/memory/pool_allocator.hpp>
 
-#include <zukiru/core/assert.hpp>
+#include <zuki/core/assert.hpp>
 
 #include <cstdlib>
 
-namespace zukiru::memory {
+namespace zuki::memory {
 namespace {
 
 // Round a requested block size up so it can hold a free-list pointer and meets
@@ -18,13 +18,13 @@ usize normalizeBlockSize(usize blockSize, usize alignment) noexcept {
 
 PoolAllocator::PoolAllocator(usize blockSize, usize blockCount, usize alignment)
     : blockSize_(normalizeBlockSize(blockSize, alignment)), blockCount_(blockCount) {
-    ZUKIRU_ENSURE_MSG(isPowerOfTwo(alignment), "pool: alignment must be a power of two");
+    ZUKI_ENSURE_MSG(isPowerOfTwo(alignment), "pool: alignment must be a power of two");
     if (blockCount_ == 0) return;
 
     // Over-allocate by `alignment` so the block region can be aligned within it.
     const usize bytes = blockSize_ * blockCount_;
     rawBuffer_ = std::malloc(bytes + alignment);
-    ZUKIRU_ENSURE_MSG(rawBuffer_ != nullptr, "pool: out of memory");
+    ZUKI_ENSURE_MSG(rawBuffer_ != nullptr, "pool: out of memory");
     blocks_ = static_cast<byte*>(alignPointer(rawBuffer_, alignment));
     ownsBuffer_ = true;
     buildFreeList();
@@ -109,7 +109,7 @@ void* PoolAllocator::allocate() noexcept {
 
 void PoolAllocator::free(void* block) noexcept {
     if (block == nullptr) return;
-    ZUKIRU_ASSERT_MSG(allocatedBlocks_ > 0, "pool: free() with no live blocks");
+    ZUKI_ASSERT_MSG(allocatedBlocks_ > 0, "pool: free() with no live blocks");
     *reinterpret_cast<void**>(block) = freeList_;
     freeList_ = block;
     --allocatedBlocks_;
@@ -119,4 +119,4 @@ void PoolAllocator::reset() noexcept {
     if (blocks_ != nullptr) buildFreeList();
 }
 
-}  // namespace zukiru::memory
+}  // namespace zuki::memory

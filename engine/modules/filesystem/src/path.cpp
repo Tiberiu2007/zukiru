@@ -1,11 +1,11 @@
-#include <zukiru/filesystem/path.hpp>
+#include <zuki/filesystem/path.hpp>
 
-#include <zukiru/core/string_utils.hpp>
+#include <zuki/core/string_utils.hpp>
 
 #include <string>
 #include <vector>
 
-namespace zukiru::filesystem::path {
+namespace zuki::filesystem::path {
 
 std::string normalize(std::string_view p) {
     std::vector<std::string> segments;
@@ -57,4 +57,4 @@ bool isAbsolute(std::string_view p) noexcept {
     return !p.empty() && p.front() == '/';
 }
 
-}  // namespace zukiru::filesystem::path
+}  // namespace zuki::filesystem::path

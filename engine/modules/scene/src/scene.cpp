@@ -1,11 +1,11 @@
-#include <zukiru/scene/scene.hpp>
+#include <zuki/scene/scene.hpp>
 
-#include <zukiru/core/assert.hpp>
+#include <zuki/core/assert.hpp>
 
 #include <algorithm>
 #include <utility>
 
-namespace zukiru::scene {
+namespace zuki::scene {
 namespace {
 
 const std::vector<Entity> kNoChildren;
@@ -34,7 +34,7 @@ Entity Scene::createNode(std::string name, Entity parent) {
     }
 
     if (parent.isValid()) {
-        ZUKIRU_ENSURE_MSG(isValid(parent), "createNode: parent is not a live node");
+        ZUKI_ENSURE_MSG(isValid(parent), "createNode: parent is not a live node");
         attach(node, parent);
     } else {
         roots_.push_back(node);
@@ -128,7 +128,7 @@ void Scene::destroyNode(Entity node) {
 }
 
 Entity Scene::clone(Entity source, Entity parent) {
-    ZUKIRU_ENSURE_MSG(isValid(source), "clone: source is not a live node");
+    ZUKI_ENSURE_MSG(isValid(source), "clone: source is not a live node");
 
     const Entity copy = world_.create();
     LocalTransform local;
@@ -158,13 +158,13 @@ Entity Scene::clone(Entity source, Entity parent) {
 
 const math::Transform& Scene::localTransform(Entity node) const {
     const LocalTransform* local = world_.get<LocalTransform>(node);
-    ZUKIRU_ENSURE_MSG(local != nullptr, "localTransform: not a node");
+    ZUKI_ENSURE_MSG(local != nullptr, "localTransform: not a node");
     return local->value;
 }
 
 void Scene::setLocalTransform(Entity node, const math::Transform& transform) {
     LocalTransform* local = world_.get<LocalTransform>(node);
-    ZUKIRU_ENSURE_MSG(local != nullptr, "setLocalTransform: not a node");
+    ZUKI_ENSURE_MSG(local != nullptr, "setLocalTransform: not a node");
     local->value = transform;
     transformsDirty_ = true;
 }
@@ -172,7 +172,7 @@ void Scene::setLocalTransform(Entity node, const math::Transform& transform) {
 const math::Transform& Scene::worldTransform(Entity node) {
     updateTransforms();
     const WorldTransform* world = world_.get<WorldTransform>(node);
-    ZUKIRU_ENSURE_MSG(world != nullptr, "worldTransform: not a node");
+    ZUKI_ENSURE_MSG(world != nullptr, "worldTransform: not a node");
     return world->value;
 }
 
@@ -204,8 +204,8 @@ std::string_view Scene::name(Entity node) const {
 }
 
 void Scene::setName(Entity node, std::string name) {
-    ZUKIRU_ENSURE_MSG(isValid(node), "setName: not a live node");
+    ZUKI_ENSURE_MSG(isValid(node), "setName: not a live node");
     world_.add(node, Name{std::move(name)});
 }
 
-}  // namespace zukiru::scene
+}  // namespace zuki::scene

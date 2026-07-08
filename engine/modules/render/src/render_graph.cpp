@@ -2,12 +2,12 @@
 // cycle detection, and dead-pass culling over the declared pass/resource DAG.
 // See ADR 0008. Physical transient-resource allocation is deferred to a future
 // render-target RHI; today passes record into the current framebuffer.
-#include <zukiru/render/render_graph.hpp>
+#include <zuki/render/render_graph.hpp>
 
 #include <unordered_set>
 #include <utility>
 
-namespace zukiru::render {
+namespace zuki::render {
 
 // --- PassBuilder ---------------------------------------------------------
 
@@ -152,4 +152,4 @@ void RenderGraph::execute(Device& device) const {
     if (compiled.isOk()) execute(device, compiled.value());
 }
 
-}  // namespace zukiru::render
+}  // namespace zuki::render

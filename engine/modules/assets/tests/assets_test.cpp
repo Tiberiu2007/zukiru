@@ -1,7 +1,7 @@
-#include <zukiru/assets/assets.hpp>
+#include <zuki/assets/assets.hpp>
 
-#include <zukiru/filesystem/virtual_file_system.hpp>
-#include <zukiru/jobs/job_system.hpp>
+#include <zuki/filesystem/virtual_file_system.hpp>
+#include <zuki/jobs/job_system.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -12,8 +12,8 @@
 #include <span>
 #include <string>
 
-using namespace zukiru;
-using namespace zukiru::assets;
+using namespace zuki;
+using namespace zuki::assets;
 namespace stdfs = std::filesystem;
 
 namespace {
@@ -32,7 +32,7 @@ struct Fixture {
         static std::atomic<u64> counter{0};
         std::random_device rd;
         dir = stdfs::temp_directory_path() /
-              ("zukiru_assets_" + std::to_string(rd()) + "_" + std::to_string(counter.fetch_add(1)));
+              ("zuki_assets_" + std::to_string(rd()) + "_" + std::to_string(counter.fetch_add(1)));
         stdfs::create_directories(dir);
         REQUIRE(vfs.mount("/assets", dir, /*writable=*/true));
     }

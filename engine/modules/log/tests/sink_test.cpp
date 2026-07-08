@@ -1,4 +1,4 @@
-#include <zukiru/log/sink.hpp>
+#include <zuki/log/sink.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-using namespace zukiru::log;
+using namespace zuki::log;
 
 namespace {
 
@@ -18,7 +18,7 @@ LogRecord makeRecord(LogLevel level, std::string_view channel, std::string_view 
     r.level = level;
     r.channel = channel;
     r.message = message;
-    r.location = zukiru::SourceLocation{"file.cpp", "fn", 42};
+    r.location = zuki::SourceLocation{"file.cpp", "fn", 42};
     r.time = std::chrono::system_clock::now();
     return r;
 }
@@ -55,7 +55,7 @@ TEST_CASE("CallbackSink forwards the record", "[log][sink]") {
 
 TEST_CASE("FileSink writes formatted lines to disk", "[log][sink]") {
     const std::filesystem::path path =
-        std::filesystem::temp_directory_path() / "zukiru_log_sink_test.log";
+        std::filesystem::temp_directory_path() / "zuki_log_sink_test.log";
     std::filesystem::remove(path);
 
     {

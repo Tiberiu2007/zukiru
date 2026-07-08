@@ -1,9 +1,9 @@
-#include <zukiru/platform/file_io.hpp>
+#include <zuki/platform/file_io.hpp>
 
 #include <format>
 #include <fstream>
 
-namespace zukiru::platform {
+namespace zuki::platform {
 
 Result<std::string> readFile(const std::filesystem::path& path) {
     std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -66,4 +66,4 @@ bool removeFile(const std::filesystem::path& path) noexcept {
     return std::filesystem::remove(path, ec);
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

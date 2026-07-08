@@ -1,15 +1,15 @@
-#include <zukiru/platform/window.hpp>
+#include <zuki/platform/window.hpp>
 
 #include <cstdlib>
 
-#if ZUKIRU_WINDOW_WAYLAND
+#if ZUKI_WINDOW_WAYLAND
 #include "backend/wayland/wayland_window.hpp"
 #endif
-#if ZUKIRU_WINDOW_X11
+#if ZUKI_WINDOW_X11
 #include "backend/x11/x11_window.hpp"
 #endif
 
-namespace zukiru::platform {
+namespace zuki::platform {
 namespace {
 
 [[maybe_unused]] [[nodiscard]] bool envSet(const char* name) {
@@ -20,12 +20,12 @@ namespace {
 }  // namespace
 
 WindowBackends compiledWindowBackends() noexcept {
-#if ZUKIRU_WINDOW_X11
+#if ZUKI_WINDOW_X11
     constexpr bool kX11 = true;
 #else
     constexpr bool kX11 = false;
 #endif
-#if ZUKIRU_WINDOW_WAYLAND
+#if ZUKI_WINDOW_WAYLAND
     constexpr bool kWayland = true;
 #else
     constexpr bool kWayland = false;
@@ -36,14 +36,14 @@ WindowBackends compiledWindowBackends() noexcept {
 Result<std::unique_ptr<Window>> createWindow(const WindowConfig& config) {
     // Prefer Wayland when running under a Wayland session; fall back to X11 (which
     // also covers XWayland). A backend compiled out is simply skipped.
-#if ZUKIRU_WINDOW_WAYLAND
+#if ZUKI_WINDOW_WAYLAND
     if (envSet("WAYLAND_DISPLAY")) {
         Result<std::unique_ptr<Window>> wayland = createWaylandWindow(config);
         if (wayland.isOk()) return wayland;
         // Wayland connection failed — fall through to X11 if it is available.
     }
 #endif
-#if ZUKIRU_WINDOW_X11
+#if ZUKI_WINDOW_X11
     if (envSet("DISPLAY")) {
         return createX11Window(config);
     }
@@ -53,4 +53,4 @@ Result<std::unique_ptr<Window>> createWindow(const WindowConfig& config) {
                      "(no WAYLAND_DISPLAY/DISPLAY, or backends not compiled in)"});
 }
 
-}  // namespace zukiru::platform
+}  // namespace zuki::platform

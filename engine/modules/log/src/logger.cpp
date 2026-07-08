@@ -1,9 +1,9 @@
-#include <zukiru/log/logger.hpp>
+#include <zuki/log/logger.hpp>
 
 #include <thread>
 #include <utility>
 
-namespace zukiru::log {
+namespace zuki::log {
 
 void Logger::addSink(std::shared_ptr<Sink> sink) {
     if (!sink) return;
@@ -81,4 +81,4 @@ Logger& defaultLogger() {
     return *instance;
 }
 
-}  // namespace zukiru::log
+}  // namespace zuki::log

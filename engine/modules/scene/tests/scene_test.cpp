@@ -1,12 +1,12 @@
-#include <zukiru/scene/scene.hpp>
+#include <zuki/scene/scene.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 
-using namespace zukiru;
-using namespace zukiru::scene;
+using namespace zuki;
+using namespace zuki::scene;
 using Catch::Matchers::WithinAbs;
 
 namespace {

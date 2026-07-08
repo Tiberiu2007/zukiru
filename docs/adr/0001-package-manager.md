@@ -2,12 +2,12 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-03
-- **Deciders:** Zukiru build/bootstrap
+- **Deciders:** Zuki build/bootstrap
 - **Supersedes:** —
 
 ## Context
 
-Zukiru is a C++20, CMake, targets-based game engine (see
+Zuki is a C++20, CMake, targets-based game engine (see
 [PROJECT_STRUCTURE.md](../../agents/PROJECT_STRUCTURE.md)). It will pull in a
 growing set of third-party libraries (math/SIMD helpers, a windowing/backend
 layer, a Vulkan loader, a physics backend, a scripting VM, test frameworks,
@@ -24,7 +24,7 @@ The two realistic candidates called out in the roadmap were **vcpkg** and
 ## Decision
 
 **Use [vcpkg](https://vcpkg.io) in _manifest mode_** as the standard package
-manager for Zukiru.
+manager for Zuki.
 
 - Dependencies are declared in [`vcpkg.json`](../../vcpkg.json) at the repo root
   (manifest mode), with versions pinned via `builtin-baseline` /

@@ -1,11 +1,11 @@
-#include <zukiru/platform/file_io.hpp>
+#include <zuki/platform/file_io.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
 
-using namespace zukiru;
-using namespace zukiru::platform;
+using namespace zuki;
+using namespace zuki::platform;
 
 namespace {
 
@@ -16,7 +16,7 @@ std::filesystem::path tempPath(std::string_view name) {
 }  // namespace
 
 TEST_CASE("write then read round-trips content", "[platform][file_io]") {
-    const auto path = tempPath("zukiru_fileio_rw.txt");
+    const auto path = tempPath("zuki_fileio_rw.txt");
     removeFile(path);
 
     REQUIRE(writeFile(path, "hello world").isOk());
@@ -31,7 +31,7 @@ TEST_CASE("write then read round-trips content", "[platform][file_io]") {
 }
 
 TEST_CASE("append adds to existing content", "[platform][file_io]") {
-    const auto path = tempPath("zukiru_fileio_append.txt");
+    const auto path = tempPath("zuki_fileio_append.txt");
     removeFile(path);
     REQUIRE(writeFile(path, "abc").isOk());
     REQUIRE(writeFile(path, "def", /*append=*/true).isOk());
@@ -40,13 +40,13 @@ TEST_CASE("append adds to existing content", "[platform][file_io]") {
 }
 
 TEST_CASE("reading a missing file returns an error", "[platform][file_io]") {
-    const auto result = readFile(tempPath("zukiru_definitely_missing_xyz.txt"));
+    const auto result = readFile(tempPath("zuki_definitely_missing_xyz.txt"));
     REQUIRE(result.isErr());
     REQUIRE_FALSE(result.error().message.empty());
 }
 
 TEST_CASE("queries on a missing file", "[platform][file_io]") {
-    const auto path = tempPath("zukiru_missing_query.txt");
+    const auto path = tempPath("zuki_missing_query.txt");
     removeFile(path);
     REQUIRE_FALSE(fileExists(path));
     REQUIRE_FALSE(fileSize(path).has_value());
@@ -54,7 +54,7 @@ TEST_CASE("queries on a missing file", "[platform][file_io]") {
 }
 
 TEST_CASE("binary read yields the raw bytes", "[platform][file_io]") {
-    const auto path = tempPath("zukiru_fileio_bin.dat");
+    const auto path = tempPath("zuki_fileio_bin.dat");
     removeFile(path);
     REQUIRE(writeFile(path, std::string_view{"\x01\x02\x03\x04", 4}).isOk());
 
@@ -68,7 +68,7 @@ TEST_CASE("binary read yields the raw bytes", "[platform][file_io]") {
 }
 
 TEST_CASE("writing an empty file yields size zero", "[platform][file_io]") {
-    const auto path = tempPath("zukiru_fileio_empty.txt");
+    const auto path = tempPath("zuki_fileio_empty.txt");
     removeFile(path);
     REQUIRE(writeFile(path, "").isOk());
     REQUIRE(fileExists(path));
